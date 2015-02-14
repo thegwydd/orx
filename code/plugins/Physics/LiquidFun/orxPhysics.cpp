@@ -152,12 +152,12 @@ static orxPHYSICS_STATIC sstPhysics;
  * Private functions                                                       *
  ***************************************************************************/
 
-void *orxPhysics_Box2D_Allocate(int32 _iSize)
+void *orxPhysics_Box2D_Allocate(int32 _iSize, void* callbackData)
 {
   return orxMemory_Allocate((orxU32)_iSize, orxMEMORY_TYPE_PHYSICS);
 }
 
-void orxPhysics_Box2D_Free(void *_pMem)
+void orxPhysics_Box2D_Free(void *_pMem, void* callbackData)
 {
   orxMemory_Free(_pMem);
 }
@@ -640,7 +640,13 @@ void orxPhysicsDebugDraw::DrawSegment(const b2Vec2 &_rvP1, const b2Vec2 &_rvP2, 
 
 void orxPhysicsDebugDraw::DrawParticles(const b2Vec2 *_avCenterList, float32 _fRadius, const b2ParticleColor *_astColorList, int32 _s32Count)
 {
-  // TODO
+  for(orxS32 i = 0; i < _s32Count; i++)
+  {
+    DrawCircle(_avCenterList[i], _fRadius, _astColorList[i].GetColor());
+  }
+
+  /* Done! */
+  return;
 }
 
 void orxPhysicsDebugDraw::DrawTransform(const b2Transform &_rstTransform)
@@ -986,7 +992,6 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
           /* New contact? */
           if(pstEventStorage->eID == orxPHYSICS_EVENT_CONTACT_ADD)
           {
-#if 0 // TODO
             b2Vec2 vPos;
 
             /* Source can't slide and destination is static? */
@@ -1013,8 +1018,8 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
               /* Updates it */
               pstEventStorage->poDestination->SetTransform(vPos, pstEventStorage->poDestination->GetAngle());
             }
-#endif
           }
+
           /* Sends event */
           orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxBody_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxBody_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
 
@@ -1061,7 +1066,7 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_Box2D_CreateBody(const orxHAN
     stBodyDef.bullet            = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_HIGH_SPEED);
     stBodyDef.allowSleep        = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_ALLOW_SLEEP);
     stBodyDef.fixedRotation     = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_FIXED_ROTATION);
-// TODO   stBodyDef.canSlide          = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_CAN_SLIDE);
+    stBodyDef.canSlide          = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_CAN_SLIDE);
     stBodyDef.position.Set(sstPhysics.fDimensionRatio * _pstBodyDef->vPosition.fX, sstPhysics.fDimensionRatio * _pstBodyDef->vPosition.fY);
 
     /* Is dynamic? */
@@ -1904,7 +1909,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetCustomGravity(orxPHYSICS_BO
   const b2Vec2 *pvCustomGravity;
   orxSTATUS     eResult = orxSTATUS_SUCCESS;
 
-#if 0 // TODO
+#if 0 //TODO
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
@@ -2095,7 +2100,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetCustomGravity(const orxPHY
   const b2Vec2 *pvGravity;
   orxVECTOR    *pvResult = orxNULL;
 
-#if 0 // TODO
+#if 0 //TODO
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
@@ -2710,7 +2715,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
 
     /* Sets custom memory alloc/free */
-// TODO    b2SetCustomAllocFree(orxPhysics_Box2D_Allocate, orxPhysics_Box2D_Free);
+    b2SetAllocFreeCallbacks(orxPhysics_Box2D_Allocate, orxPhysics_Box2D_Free, NULL);
 
     /* Gets gravity & allow sleep from config */
     if(orxConfig_GetVector(orxPHYSICS_KZ_CONFIG_GRAVITY, &vGravity) == orxNULL)
