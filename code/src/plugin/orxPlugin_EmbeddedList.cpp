@@ -64,12 +64,12 @@
 /** Includes all plugins to embed
  */
 
-/* GLFW, Box2D, OpenAL, stb_image, libsndfile & stb_vorbis */
+/* GLFW, LiquidFun, OpenAL, stb_image, libsndfile & stb_vorbis */
 #include "../plugins/Display/GLFW/orxDisplay.c"
 #include "../plugins/Joystick/GLFW/orxJoystick.c"
 #include "../plugins/Keyboard/GLFW/orxKeyboard.c"
 #include "../plugins/Mouse/GLFW/orxMouse.c"
-#include "../plugins/Physics/Box2D/orxPhysics.cpp"
+#include "../plugins/Physics/LiquidFun/orxPhysics.cpp"
 #include "../plugins/Render/Home/orxRender.c"
 #include "../plugins/Sound/OpenAL/orxSoundSystem.c"
 
