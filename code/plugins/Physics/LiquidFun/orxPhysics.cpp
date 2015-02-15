@@ -1909,7 +1909,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetCustomGravity(orxPHYSICS_BO
   const b2Vec2 *pvCustomGravity;
   orxSTATUS     eResult = orxSTATUS_SUCCESS;
 
-#if 0 //TODO
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
@@ -1950,7 +1949,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetCustomGravity(orxPHYSICS_BO
       poBody->SetCustomGravity(orxNULL);
     }
   }
-#endif
 
   /* Done! */
   return eResult;
@@ -2100,7 +2098,6 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetCustomGravity(const orxPHY
   const b2Vec2 *pvGravity;
   orxVECTOR    *pvResult = orxNULL;
 
-#if 0 //TODO
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
@@ -2124,7 +2121,6 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetCustomGravity(const orxPHY
     /* Clears result */
     pvResult = orxNULL;
   }
-#endif
 
   /* Done! */
   return pvResult;
@@ -2802,7 +2798,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
           sstPhysics.poDebugDraw = new orxPhysicsDebugDraw();
 
           /* Inits it */
-          sstPhysics.poDebugDraw->SetFlags(b2Draw::e_shapeBit | b2Draw::e_jointBit | b2Draw::e_centerOfMassBit);
+          sstPhysics.poDebugDraw->SetFlags(b2Draw::e_shapeBit | b2Draw::e_jointBit | b2Draw::e_centerOfMassBit | b2Draw::e_particleBit);
 
           /* Registers it */
           sstPhysics.poWorld->SetDebugDraw(sstPhysics.poDebugDraw);
