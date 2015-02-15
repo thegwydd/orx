@@ -298,6 +298,18 @@ typedef struct __orxPHYSICS_BODY_JOINT_t              orxPHYSICS_BODY_JOINT;
 #define orxPHYSICS_KZ_CONFIG_SHOW_DEBUG               "ShowDebug"
 #define orxPHYSICS_KZ_CONFIG_COLLISION_FLAG_LIST      "CollisionFlagList"
 
+#define orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST     "ParticleSystemList"
+#define orxPHYSICS_KZ_CONFIG_DENSITY                  "Density"
+#define orxPHYSICS_KZ_CONFIG_RADIUS                   "Radius"
+#define orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT       "MaxParticleCount"
+#define orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH         "DampingStrength"
+#define orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH        "PressureStrength"
+#define orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH         "ElasticStrength"
+#define orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH          "SpringStrength"
+#define orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH         "ViscousStrength"
+
+
+#define orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE   5
 
 /***************************************************************************
  * Functions directly implemented by orx core

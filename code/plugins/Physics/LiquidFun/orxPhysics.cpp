@@ -129,6 +129,7 @@ typedef struct __orxPHYSICS_STATIC_t
   orxBANK                    *pstEventBank;       /**< Event bank */
   b2World                    *poWorld;            /**< World */
   orxPhysicsContactListener  *poContactListener;  /**< Contact listener */
+  orxHASHTABLE               *pstParticleSystems; /**< Particle System Hashtable*/
 
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
@@ -2747,6 +2748,44 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
       orxCLOCK *pstClock;
       orxU32    u32IterationsPerStep;
 
+      sstPhysics.pstParticleSystems = orxHashTable_Create(orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE, orxHASHTABLE_KU32_FLAG_NONE, orxMEMORY_TYPE_PHYSICS);
+
+      /* Success ? */
+      if(sstPhysics.pstParticleSystems != orxNULL)
+      {
+        /* Create Particle Systems */
+        for(orxS32 i = 0; i < orxConfig_GetListCounter(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST); i++)
+        {
+          const orxSTRING zParticleSystemName = orxConfig_GetListString(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST, i);
+          b2ParticleSystemDef particleSystemDef;
+
+          if(orxConfig_HasSection(zParticleSystemName))
+          {
+            orxConfig_PushSection(zParticleSystemName);
+
+            particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS);
+            particleSystemDef.density = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DENSITY);
+            particleSystemDef.maxCount = orxConfig_GetS32(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT);
+            particleSystemDef.pressureStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH);
+            particleSystemDef.dampingStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH);
+            particleSystemDef.elasticStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH);
+            particleSystemDef.springStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH);
+            particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
+
+            orxConfig_PopSection();
+          }
+
+          /* Create Particle System */
+          b2ParticleSystem *poParticleSystem = sstPhysics.poWorld->CreateParticleSystem(&particleSystemDef);
+
+          /* Success ? */
+          if(poParticleSystem != orxNULL)
+          {
+            orxHashTable_Add(sstPhysics.pstParticleSystems, orxString_GetID(zParticleSystemName), (void*)poParticleSystem);
+          }
+        }
+      }
+
       /* Creates listeners */
       sstPhysics.poContactListener = new orxPhysicsContactListener();
 
@@ -2816,6 +2855,22 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
           /* Deletes listeners */
           delete sstPhysics.poContactListener;
 
+          /* Deletes particle systems */
+          if(sstPhysics.pstParticleSystems != orxNULL)
+          {
+            orxHANDLE iterator;
+            b2ParticleSystem *poParticleSystem;
+
+            for(iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, orxNULL, orxNULL, (void**)&poParticleSystem);
+              iterator != orxHANDLE_UNDEFINED;
+              iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, iterator, orxNULL, (void**)&poParticleSystem))
+            {
+              sstPhysics.poWorld->DestroyParticleSystem(poParticleSystem);
+            }
+
+            orxHashTable_Delete(sstPhysics.pstParticleSystems);
+          }
+
           /* Deletes world */
           delete sstPhysics.poWorld;
 
@@ -2827,6 +2882,22 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
       {
         /* Deletes listeners */
         delete sstPhysics.poContactListener;
+
+        /* Deletes particle systems */
+        if(sstPhysics.pstParticleSystems != orxNULL)
+        {
+          orxHANDLE iterator;
+          b2ParticleSystem *poParticleSystem;
+
+          for(iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, orxNULL, orxNULL, (void**)&poParticleSystem);
+            iterator != orxHANDLE_UNDEFINED;
+            iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, iterator, orxNULL, (void**)&poParticleSystem))
+          {
+            sstPhysics.poWorld->DestroyParticleSystem(poParticleSystem);
+          }
+
+          orxHashTable_Delete(sstPhysics.pstParticleSystems);
+        }
 
         /* Deletes world */
         delete sstPhysics.poWorld;
@@ -2854,6 +2925,23 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_Exit()
   /* Was initialized? */
   if(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY)
   {
+
+    /* Deletes the particle systems */
+    if(sstPhysics.pstParticleSystems != orxNULL)
+    {
+      orxHANDLE iterator;
+      b2ParticleSystem *poParticleSystem;
+
+      for(iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, orxNULL, orxNULL, (void**)&poParticleSystem);
+        iterator != orxHANDLE_UNDEFINED;
+        iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, iterator, orxNULL, (void**)&poParticleSystem))
+      {
+        sstPhysics.poWorld->DestroyParticleSystem(poParticleSystem);
+      }
+
+      orxHashTable_Delete(sstPhysics.pstParticleSystems);
+    }
+
     /* Deletes the listeners */
     delete sstPhysics.poContactListener;
 
