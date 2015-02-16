@@ -2312,9 +2312,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyTorque(orxPHYSICS_BODY *_
     }
   }
 
-  /* Wakes up */
-  poBody->SetAwake(true);
-
   /* Applies torque */
   poBody->ApplyTorque(fTorque, true);
 
@@ -2380,9 +2377,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyForce(orxPHYSICS_BODY *_p
     vPoint = poBody->GetWorldCenter();
   }
 
-  /* Wakes up */
-  poBody->SetAwake(true);
-
   /* Applies force */
   poBody->ApplyForce(vForce, vPoint, true);
 
@@ -2447,9 +2441,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyImpulse(orxPHYSICS_BODY *
     /* Gets world mass center */
     vPoint = poBody->GetWorldCenter();
   }
-
-  /* Wakes up */
-  poBody->SetAwake(true);
 
   /* Applies force */
   poBody->ApplyLinearImpulse(vImpulse, vPoint, true);
@@ -2700,7 +2691,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
   /* Was not already initialized? */
   if(!(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY))
   {
-    orxBOOL   bAllowSleep;
     orxFLOAT  fRatio;
     orxVECTOR vGravity;
     b2Vec2    vWorldGravity;
@@ -2719,7 +2709,6 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     {
       orxVector_Copy(&vGravity, &orxVECTOR_0);
     }
-    bAllowSleep = (orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_ALLOW_SLEEP) != orxFALSE) ? orxConfig_GetBool(orxPHYSICS_KZ_CONFIG_ALLOW_SLEEP) : orxTRUE;
 
     /* Gets dimension ratio */
     fRatio = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RATIO);
@@ -2740,7 +2729,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     vWorldGravity.Set(sstPhysics.fDimensionRatio * vGravity.fX, sstPhysics.fDimensionRatio * vGravity.fY);
 
     /* Creates world */
-    sstPhysics.poWorld = new b2World(vWorldGravity /* TODO mssing, bAllowSleep ? true : false*/);
+    sstPhysics.poWorld = new b2World(vWorldGravity);
 
     /* Success? */
     if(sstPhysics.poWorld != orxNULL)
