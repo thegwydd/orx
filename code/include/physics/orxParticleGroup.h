@@ -70,7 +70,14 @@ extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_Init();
 extern orxDLLAPI void orxFASTCALL                      orxParticleGroup_Exit();
 
 
-/** Creates a particel group from config
+/** Creates a particle group
+ * @param[in]   _pstOwner                              ParticleGroup's owner used for collision callbacks (usually an orxOBJECT)
+ * @param[in]   _pstParticleGroupDef                   ParticleGroup definition
+ * @return      Created orxPARTICLEGROUP / orxNULL
+ */
+extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_Create(const orxSTRUCTURE *_pstOwner, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef);
+
+/** Creates a particle group from config
  * @param[in]   _pstOwner                     ParticleGroup's owner used for collision callbacks (usually an orxOBJECT)
  * @param[in]   _zConfigID                    ParticleGroup config ID
  * @return      Created orxPARTICLEGROUP / orxNULL

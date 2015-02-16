@@ -100,6 +100,14 @@
 
 #define orxBODY_JOINT_DEF_KU32_MASK_ALL               0xFFFFFFFF  /**< Body joint def all mask */
 
+/** ParticleGroup definition flags
+ */
+#define orxPARTICLEGROUP_DEF_KU32_FLAG_NONE           0x00000000  /**< No flags */
+
+#define orxPARTICLEGROUP_DEF_KU32_FLAG_2D             0x00000001  /**< 2D type body def flag */
+
+#define orxPARTICLEGROUP_DEF_KU32_MASK_ALL            0xFFFFFFFF  /**< Body def all mask */
+
 
 /** Misc defines
  */
@@ -250,6 +258,47 @@ typedef struct __orxBODY_JOINT_DEF_t
 
 } orxBODY_JOINT_DEF;
 
+/** ParticleGroup definition
+ */
+typedef struct __orxPARTICLEGROUP_DEF_t
+{
+  orxVECTOR vPosition;                                /**< Position : 12 */
+  orxFLOAT  fRotation;                                /**< Rotation : 16 */
+  orxU32    u32ShapeCount;                            /**< Shape Count : 20 */
+  const orxPARTICLEGROUP_SHAPE_DEF* const* astShapes; /**< Shapes : 24 */
+  orxU32    u32Flags;                                 /**< Control flags : 28 */
+
+} orxPARTICLEGROUP_DEF;
+
+/** ParticleGroup Shape definition
+ */
+typedef struct __orxPARTICLEGROUP_SHAPE_DEF_t
+{
+  orxU32    u32Flags;                                 /**< Control flags : 4 */
+
+  union
+  {
+    struct
+    {
+      orxVECTOR vCenter;                              /**< Sphere center : 18 */
+      orxFLOAT  fRadius;                              /**< Sphere radius : 22 */
+    } stSphere;                                       /**< Sphere : 22 */
+
+    struct
+    {
+      orxAABOX  stBox;                                /**< Axis aligned Box : 28 */
+    } stAABox;                                        /**< Box : 28 */
+
+    struct
+    {
+      orxU32    u32VertexCounter;                     /**< Mesh vertex counter : 8 */
+      orxVECTOR avVertices[orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER]; /**< Mesh vertices : 104 */
+
+    } stMesh;
+
+  };                                                  /**< Part : 104 */
+
+} orxPARTICLEGROUP_SHAPE_DEF;
 
 /** Event enum
  */
