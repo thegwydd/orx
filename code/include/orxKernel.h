@@ -100,6 +100,7 @@
 #include "plugin/orxPluginUser.h"
 
 #include "physics/orxBody.h"
+#include "physics/orxParticleGroup.h"
 #include "physics/orxPhysics.h"
 
 #include "render/orxCamera.h"

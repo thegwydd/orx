@@ -641,9 +641,11 @@ void orxPhysicsDebugDraw::DrawSegment(const b2Vec2 &_rvP1, const b2Vec2 &_rvP2, 
 
 void orxPhysicsDebugDraw::DrawParticles(const b2Vec2 *_avCenterList, float32 _fRadius, const b2ParticleColor *_astColorList, int32 _s32Count)
 {
+  b2Color color(1, 1, 1);
+
   for(orxS32 i = 0; i < _s32Count; i++)
   {
-    DrawCircle(_avCenterList[i], _fRadius, _astColorList[i].GetColor());
+    DrawCircle(_avCenterList[i], _fRadius, color);
   }
 
   /* Done! */
@@ -2630,13 +2632,15 @@ extern "C" orxHANDLE orxFASTCALL orxPhysics_Box2D_Raycast(const orxVECTOR *_pvSt
 extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticleGroup(const orxHANDLE _hUserData, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef)
 {
   b2ParticleGroup     *poResult = 0;
-  b2ParticleGroupDef stParticleGroupDef;
+  b2ParticleGroupDef   stParticleGroupDef;
+  b2ParticleSystem    *poParticleSystem;
+  b2CircleShape        stCircleShape;
+  b2PolygonShape       stPolygonShape;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_hUserData != orxHANDLE_UNDEFINED);
   orxASSERT(_pstParticleGroupDef != orxNULL);
-  orxASSERT(_pstParticleGroupDef->zParticleSystemName != orxNULL);
 
   /* 2D? */
   if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_2D))
@@ -2655,8 +2659,73 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
     {
       stParticleGroupDef.groupFlags |= b2_particleGroupCanBeEmpty;
     }
+    if(_pstParticleGroupDef->pstShapeDef != orxNULL)
+    {
+      const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef = _pstParticleGroupDef->pstShapeDef;
 
-    b2ParticleSystem *poParticleSystem = (b2ParticleSystem*) orxHashTable_Get(sstPhysics.pstParticleSystems, orxString_GetID(_pstParticleGroupDef->zParticleSystemName));
+      /* Circle? */
+      if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE))
+      {
+        /* Stores shape reference */
+        stParticleGroupDef.shape = &stCircleShape;
+
+        /* Stores its coordinates */
+        stCircleShape.m_p.Set(sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fX, sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fY);
+        stCircleShape.m_radius = sstPhysics.fDimensionRatio * pstShapeDef->stSphere.fRadius;
+      }
+      /* Polygon */
+      else
+      {
+        /* Stores shape reference */
+        stParticleGroupDef.shape = &stPolygonShape;
+
+        /* Box? */
+        if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX))
+        {
+          b2Vec2 avVertexList[4];
+
+          /* Stores its coordinates */
+          avVertexList[0].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
+          avVertexList[1].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
+          avVertexList[2].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
+          avVertexList[3].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
+
+          /* Updates shape */
+          stPolygonShape.Set(avVertexList, 4);
+        }
+        else
+        {
+          b2Vec2 avVertexList[b2_maxPolygonVertices];
+          orxU32 i;
+
+          /* Checks */
+          orxASSERT(pstShapeDef->stMesh.u32VertexCounter > 0);
+          orxASSERT(orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER <= b2_maxPolygonVertices);
+
+          /* For all the vertices */
+          for(i = 0; i < pstShapeDef->stMesh.u32VertexCounter; i++)
+          {
+            /* Sets its vector */
+            avVertexList[i].Set(sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fX, sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fY);
+          }
+
+          /* Updates shape */
+          stPolygonShape.Set(avVertexList, (int32)pstShapeDef->stMesh.u32VertexCounter);
+        }
+      }
+    }
+
+    /* Merge with existing group ? */
+    if(_pstParticleGroupDef->hParticleGroup != orxHANDLE_UNDEFINED)
+    {
+      stParticleGroupDef.group = (b2ParticleGroup*) _pstParticleGroupDef->hParticleGroup;
+      poParticleSystem = stParticleGroupDef.group->GetParticleSystem();
+    }
+    else
+    {
+      orxASSERT(_pstParticleGroupDef->zParticleSystemName != orxNULL);
+      poParticleSystem = (b2ParticleSystem*) orxHashTable_Get(sstPhysics.pstParticleSystems, orxString_GetID(_pstParticleGroupDef->zParticleSystemName));
+    }
 
     if(poParticleSystem != orxNULL)
     {
@@ -2794,15 +2863,39 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
           {
             orxConfig_PushSection(zParticleSystemName);
 
-            particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS);
-            particleSystemDef.density = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DENSITY);
-            particleSystemDef.maxCount = orxConfig_GetS32(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT);
-            particleSystemDef.pressureStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH);
-            particleSystemDef.dampingStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH);
-            particleSystemDef.elasticStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH);
-            particleSystemDef.springStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH);
-            particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
-
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_RADIUS))
+            {
+              particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DENSITY))
+            {
+              particleSystemDef.density = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DENSITY);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT))
+            {
+              particleSystemDef.maxCount = orxConfig_GetS32(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH))
+            {
+              particleSystemDef.pressureStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH))
+            {
+              particleSystemDef.dampingStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH))
+            {
+              particleSystemDef.elasticStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH))
+            {
+              particleSystemDef.springStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH))
+            {
+              particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
+            }
+            
             orxConfig_PopSection();
           }
 

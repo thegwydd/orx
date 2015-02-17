@@ -89,6 +89,18 @@ extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_CreateFr
 extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_Delete(orxPARTICLEGROUP *_pstParticleGroup);
 
 
+/** Add a shape to a particle group
+ * @param[in]   _pstParticleGroup       concerned ParticleGroup
+ * @param[in]   _pstShapeDef            shape def to add
+ */
+extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_AddShape(orxPARTICLEGROUP *_pstParticleGroup, const orxPARTICLEGROUP_SHAPE_DEF *_pstShapeDef);
+
+/** Add a shape to a particle group from config
+ * @param[in]   _pstParticleGroup       concerned ParticleGroup
+ * @param[in]   _zConfigID              shape configuration section to add
+ */
+extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_AddShapeFromConfig(orxPARTICLEGROUP *_pstParticleGroup, const orxSTRING _zConfigID);
+
 #if 0
 /** Gets a particle group owner
  * @param[in]   _pstParticleGroup        Concerned particle group

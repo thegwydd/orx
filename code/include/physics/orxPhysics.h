@@ -111,6 +111,16 @@
 
 #define orxPARTICLEGROUP_DEF_KU32_MASK_ALL            0xFFFFFFFF  /**< Body def all mask */
 
+/** ParticleGroup sahep definition flags
+ */
+#define orxBODY_PART_DEF_KU32_FLAG_NONE               0x00000000  /**< No flags */
+
+#define orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE   0x00000001  /**< Sphere body part def flag */
+#define orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX      0x00000002  /**< Box body part def flag */
+#define orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_MESH     0x00000004  /**< Mesh body part def flag */
+
+#define orxBODY_PART_DEF_KU32_MASK_ALL                0xFFFFFFFF  /**< Body part def all mask */
+
 
 /** Misc defines
  */
@@ -296,7 +306,9 @@ typedef struct __orxPARTICLEGROUP_SHAPE_DEF_t
 typedef struct __orxPARTICLEGROUP_DEF_t
 {
   const orxSTRING zParticleSystemName;                /**< Particel System used : 4 */
-  orxU32    u32Flags;                                 /**< Control flags : 8 */
+  orxHANDLE hParticleGroup;                           /**< orxPHYSICS_PARTICLEGROUPP* to merge with : 8 */
+  const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef;      /** */
+  orxU32    u32Flags;                                 /**< Control flags : 12 */
 
 } orxPARTICLEGROUP_DEF;
 
