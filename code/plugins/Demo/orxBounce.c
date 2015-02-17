@@ -540,6 +540,8 @@ static orxSTATUS orxBounce_Init()
   /* Loads input */
   orxInput_Load(orxNULL);
 
+  orxParticleGroup_CreateFromConfig("ParticleGroup1");
+
   /* Creates ball spawner */
   spoBallSpawner = orxSpawner_CreateFromConfig("BallSpawner");
 
