@@ -2659,6 +2659,15 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
     {
       stParticleGroupDef.groupFlags |= b2_particleGroupCanBeEmpty;
     }
+    // TODO stParticleGroupDef.flags
+    // TODO stParticleGroupDef.color
+    // TODO stParticleGroupDef.lifetime
+    // TODO stParticleGroupDef.shapes & .shapeCount
+    // TODO stParticleGroupDef.position
+    // TODO stParticleGroupDef.angle
+    // TODO stParticleGroupDef.linearVelocity
+    // TODO stParticleGroupDef.angularVelocity
+    // TODO stParticleGroupDef.strength
     if(_pstParticleGroupDef->pstShapeDef != orxNULL)
     {
       const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef = _pstParticleGroupDef->pstShapeDef;
