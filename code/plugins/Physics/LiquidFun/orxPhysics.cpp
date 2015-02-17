@@ -2627,6 +2627,48 @@ extern "C" orxHANDLE orxFASTCALL orxPhysics_Box2D_Raycast(const orxVECTOR *_pvSt
   return hResult;
 }
 
+extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticleGroup(const orxHANDLE _hUserData, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef)
+{
+  b2ParticleGroup     *poResult = 0;
+  b2ParticleGroupDef stParticleGroupDef;
+
+  /* Checks */
+  orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
+  orxASSERT(_hUserData != orxHANDLE_UNDEFINED);
+  orxASSERT(_pstParticleGroupDef != orxNULL);
+  orxASSERT(_pstParticleGroupDef->zParticleSystemName != orxNULL);
+
+  /* 2D? */
+  if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_2D))
+  {
+    /* Inits particle group definition */
+    stParticleGroupDef.userData          = _hUserData;
+    if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_SOLID))
+    {
+      stParticleGroupDef.groupFlags |= b2_solidParticleGroup;
+    }
+    if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_RIGID))
+    {
+      stParticleGroupDef.groupFlags |= b2_rigidParticleGroup;
+    }
+    if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_CAN_BE_EMPTY))
+    {
+      stParticleGroupDef.groupFlags |= b2_particleGroupCanBeEmpty;
+    }
+
+    b2ParticleSystem *poParticleSystem = (b2ParticleSystem*) orxHashTable_Get(sstPhysics.pstParticleSystems, orxString_GetID(_pstParticleGroupDef->zParticleSystemName));
+
+    if(poParticleSystem != orxNULL)
+    {
+      /* Creates particle group */
+      poResult = poParticleSystem->CreateParticleGroup(stParticleGroupDef);
+    }
+  }
+
+  /* Done! */
+  return (orxPHYSICS_PARTICLEGROUP *)poResult;
+}
+
 extern "C" void orxFASTCALL orxPhysics_Box2D_EnableSimulation(orxBOOL _bEnable)
 {
   /* Checks */
@@ -3004,6 +3046,7 @@ orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetJointMaxMotorTorque, PHYSIC
 orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetJointReactionForce, PHYSICS, GET_JOINT_REACTION_FORCE);
 orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetJointReactionTorque, PHYSICS, GET_JOINT_REACTION_TORQUE);
 orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_Raycast, PHYSICS, RAYCAST);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_CreateParticleGroup, PHYSICS, CREATE_PARTICLE_GROUP);
 orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_EnableSimulation, PHYSICS, ENABLE_SIMULATION);
 orxPLUGIN_USER_CORE_FUNCTION_END();
 

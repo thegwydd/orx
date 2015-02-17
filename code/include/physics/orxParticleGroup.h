@@ -71,26 +71,19 @@ extern orxDLLAPI void orxFASTCALL                      orxParticleGroup_Exit();
 
 
 /** Creates a particle group
- * @param[in]   _pstOwner                              ParticleGroup's owner used for collision callbacks (usually an orxOBJECT)
  * @param[in]   _pstParticleGroupDef                   ParticleGroup definition
  * @return      Created orxPARTICLEGROUP / orxNULL
  */
-extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_Create(const orxSTRUCTURE *_pstOwner, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef);
+extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_Create(const orxPARTICLEGROUP_DEF *_pstParticleGroupDef);
 
 /** Creates a particle group from config
- * @param[in]   _pstOwner                     ParticleGroup's owner used for collision callbacks (usually an orxOBJECT)
  * @param[in]   _zConfigID                    ParticleGroup config ID
  * @return      Created orxPARTICLEGROUP / orxNULL
  */
-extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_CreateFromConfig(const orxSTRUCTURE *_pstOwner, const orxSTRING _zConfigID);
-
-/** Deletes a particel group
- * @param[in]   _pstParticleGroup        Concerned particle group
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_Delete(orxPARTICLEGROUP *_pstParticleGroup);
+extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_CreateFromConfig(const orxSTRING _zConfigID);
 
 
+#if 0
 /** Gets a particle group owner
  * @param[in]   _pstParticleGroup        Concerned particle group
  * @return      orxSTRUCTURE / orxNULL
@@ -159,6 +152,8 @@ extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_ApplyFor
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_ApplyImpulse(const orxPARTICLEGROUP *_pstParticleGroup, const orxVECTOR *_pvImpulse);
+
+#endif
 
 #endif /* _orxPARTICLEGROUP_H_ */
 

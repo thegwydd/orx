@@ -105,6 +105,9 @@
 #define orxPARTICLEGROUP_DEF_KU32_FLAG_NONE           0x00000000  /**< No flags */
 
 #define orxPARTICLEGROUP_DEF_KU32_FLAG_2D             0x00000001  /**< 2D type body def flag */
+#define orxPARTICLEGROUP_DEF_KU32_FLAG_SOLID          0x00000002  /**< Prevents overlapping or leaking. */
+#define orxPARTICLEGROUP_DEF_KU32_FLAG_RIGID          0x00000004  /**< Keeps its shape. */
+#define orxPARTICLEGROUP_DEF_KU32_FLAG_CAN_BE_EMPTY   0x00000008  /**< Won't be destroyed if it gets empty. */
 
 #define orxPARTICLEGROUP_DEF_KU32_MASK_ALL            0xFFFFFFFF  /**< Body def all mask */
 
@@ -258,18 +261,6 @@ typedef struct __orxBODY_JOINT_DEF_t
 
 } orxBODY_JOINT_DEF;
 
-/** ParticleGroup definition
- */
-typedef struct __orxPARTICLEGROUP_DEF_t
-{
-  orxVECTOR vPosition;                                /**< Position : 12 */
-  orxFLOAT  fRotation;                                /**< Rotation : 16 */
-  orxU32    u32ShapeCount;                            /**< Shape Count : 20 */
-  const orxPARTICLEGROUP_SHAPE_DEF* const* astShapes; /**< Shapes : 24 */
-  orxU32    u32Flags;                                 /**< Control flags : 28 */
-
-} orxPARTICLEGROUP_DEF;
-
 /** ParticleGroup Shape definition
  */
 typedef struct __orxPARTICLEGROUP_SHAPE_DEF_t
@@ -299,6 +290,16 @@ typedef struct __orxPARTICLEGROUP_SHAPE_DEF_t
   };                                                  /**< Part : 104 */
 
 } orxPARTICLEGROUP_SHAPE_DEF;
+
+/** ParticleGroup definition
+ */
+typedef struct __orxPARTICLEGROUP_DEF_t
+{
+  const orxSTRING zParticleSystemName;                /**< Particel System used : 4 */
+  orxU32    u32Flags;                                 /**< Control flags : 8 */
+
+} orxPARTICLEGROUP_DEF;
+
 
 /** Event enum
  */
@@ -335,6 +336,10 @@ typedef struct __orxPHYSICS_BODY_PART_t               orxPHYSICS_BODY_PART;
 /** Internal physics joint structure
  */
 typedef struct __orxPHYSICS_BODY_JOINT_t              orxPHYSICS_BODY_JOINT;
+
+/** Internal physics particel group structure
+ */
+typedef struct __orxPHYSICS_PARTICLEGROUP_t           orxPHYSICS_PARTICLEGROUP;
 
 
 /** Config defines
@@ -691,6 +696,14 @@ extern orxDLLAPI orxFLOAT orxFASTCALL                 orxPhysics_GetJointReactio
  * @return Colliding body's user data / orxHANDLE_UNDEFINED
  */
 extern orxDLLAPI orxHANDLE orxFASTCALL                orxPhysics_Raycast(const orxVECTOR *_pvStart, const orxVECTOR *_pvEnd, orxU16 _u16SelfFlags, orxU16 _u16CheckMask, orxBOOL _bEarlyExit, orxVECTOR *_pvContact, orxVECTOR *_pvNormal);
+
+
+/** Creates a physical particle group
+ * @param[in]   _hUserData                            User data to associate with this physical particle group
+ * @param[in]   _pstParticleGroupDef                           Physical particle group definition
+ * @return orxPHYSICS_BODY / orxNULL
+ */
+extern orxDLLAPI orxPHYSICS_PARTICLEGROUP *orxFASTCALL         orxPhysics_CreateParticleGroup(const orxHANDLE _hUserData, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef);
 
 
 /** Enables/disables physics simulation
