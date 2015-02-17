@@ -106,6 +106,28 @@ static orxPARTICLEGROUP_STATIC sstParticleGroup;
  * Private functions                                                       *
  ***************************************************************************/
 
+/** Deletes all particle groups
+ */
+static orxINLINE void orxParticleGroup_DeleteAll()
+{
+  register orxPARTICLEGROUP *pstParticleGroup;
+
+  /* Gets first body */
+  pstParticleGroup = orxPARTICLEGROUP(orxStructure_GetFirst(orxSTRUCTURE_ID_PARTICLEGROUP));
+
+  /* Non empty? */
+  while(pstParticleGroup != orxNULL)
+  {
+    /* Deletes Body */
+    orxParticleGroup_Delete(pstParticleGroup);
+
+    /* Gets first Body */
+    pstParticleGroup = orxPARTICLEGROUP(orxStructure_GetFirst(orxSTRUCTURE_ID_PARTICLEGROUP));
+  }
+
+  return;
+}
+
 /***************************************************************************
  * Public functions                                                        *
  ***************************************************************************/
@@ -173,6 +195,9 @@ void orxFASTCALL orxParticleGroup_Exit()
   /* Initialized? */
   if(sstParticleGroup.u32Flags & orxPARTICLEGROUP_KU32_STATIC_FLAG_READY)
   {
+    /* Deletes particle group list */
+    orxParticleGroup_DeleteAll();
+
     /* Unregisters structure type */
     orxStructure_Unregister(orxSTRUCTURE_ID_PARTICLEGROUP);
 
@@ -300,3 +325,34 @@ orxPARTICLEGROUP *orxFASTCALL orxParticleGroup_CreateFromConfig(const orxSTRING 
   /* Done! */
   return pstResult;
 }
+
+/** Deletes a particle group
+ * @param[in]   _pstParticleGroup     ParticleGroup to delete
+ */
+orxSTATUS orxFASTCALL orxParticleGroup_Delete(orxPARTICLEGROUP *_pstParticleGroup)
+{
+  orxSTATUS eResult = orxSTATUS_SUCCESS;
+
+  /* Checks */
+  orxASSERT(sstParticleGroup.u32Flags & orxPARTICLEGROUP_KU32_STATIC_FLAG_READY);
+  orxSTRUCTURE_ASSERT(_pstParticleGroup);
+
+  /* Decreases counter */
+  orxStructure_DecreaseCounter(_pstParticleGroup);
+
+  /* Not referenced? */
+  if(orxStructure_GetRefCounter(_pstParticleGroup) == 0)
+  {
+    /* Deletes structure */
+    orxStructure_Delete(_pstParticleGroup);
+  }
+  else
+  {
+    /* Referenced by others */
+    eResult = orxSTATUS_FAILURE;
+  }
+
+  /* Done! */
+  return eResult;
+}
+

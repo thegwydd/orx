@@ -82,6 +82,12 @@ extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_Create(c
  */
 extern orxDLLAPI orxPARTICLEGROUP *orxFASTCALL         orxParticleGroup_CreateFromConfig(const orxSTRING _zConfigID);
 
+/** Deletes a particle group
+ * @param[in]   _pstBody        Concerned particle group
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
+extern orxDLLAPI orxSTATUS orxFASTCALL                 orxParticleGroup_Delete(orxPARTICLEGROUP *_pstParticleGroup);
+
 
 #if 0
 /** Gets a particle group owner
