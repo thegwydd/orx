@@ -81,6 +81,7 @@
 #define orxPARTICLEGROUP_KZ_TYPE_BOX                   "box"
 #define orxPARTICLEGROUP_KZ_TYPE_MESH                  "mesh"
 
+#define orxPARTICLEGROUP_KU32_SHAPE_DEF_BANK_SIZE       64
 
 /***************************************************************************
  * Structure declaration                                                   *
@@ -101,6 +102,7 @@ struct __orxPARTICLEGROUP_t
 typedef struct __orxPARTICLEGROUP_STATIC_t
 {
   orxU32            u32Flags;                                         /**< Control flags */
+  orxBANK         *pstShapeDefBank;                                   /**< Shape def bank */
 
 } orxPARTICLEGROUP_STATIC;
 
@@ -140,6 +142,117 @@ static orxINLINE void orxParticleGroup_DeleteAll()
   return;
 }
 
+static orxINLINE orxPARTICLEGROUP_SHAPE_DEF *orxParticleGroup_CreateShapeDefFromConfig(const orxSTRING _zConfigID)
+{
+  orxPARTICLEGROUP_SHAPE_DEF *pstResult;
+
+  /* Pushes section */
+  if((orxConfig_HasSection(_zConfigID) != orxFALSE)
+  && (orxConfig_PushSection(_zConfigID) != orxSTATUS_FAILURE))
+  {
+    orxBOOL           bSuccess = orxTRUE;
+
+    /* Creates a shape part def */
+    pstResult = (orxPARTICLEGROUP_SHAPE_DEF *)orxBank_Allocate(sstParticleGroup.pstShapeDefBank);
+
+    if(pstResult != orxNULL)
+    {
+      const orxSTRING   zShapeType;
+
+      /* Clears shape definition */
+      orxMemory_Zero(pstResult, sizeof(orxPARTICLEGROUP_SHAPE_DEF));
+
+      /* Gets body part type */
+      zShapeType = orxConfig_GetString(orxPARTICLEGROUP_KZ_CONFIG_TYPE);
+
+      /* Sphere? */
+      if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_SPHERE) == 0)
+      {
+        /* Updates sphere specific info */
+        pstResult->u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE;
+        orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_CENTER, &(pstResult->stSphere.vCenter));
+        pstResult->stSphere.fRadius = orxConfig_GetFloat(orxPARTICLEGROUP_KZ_CONFIG_RADIUS);
+      }
+      /* Box? */
+      else if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_BOX) == 0)
+      {
+        /* Updates box specific info */
+        pstResult->u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX;
+        orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_TOP_LEFT, &(pstResult->stAABox.stBox.vTL));
+        orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_BOTTOM_RIGHT, &(pstResult->stAABox.stBox.vBR));
+      }
+      /* Mesh */
+      else if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_MESH) == 0)
+      {
+        /* Updates mesh specific info */
+        pstResult->u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_MESH;
+        if((orxConfig_HasValue(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST) != orxFALSE)
+        && ((pstResult->stMesh.u32VertexCounter = orxConfig_GetListCounter(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST)) >= 3))
+        {
+          orxU32 i;
+
+          /* Too many defined vertices? */
+          if(pstResult->stMesh.u32VertexCounter > orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER)
+          {
+            /* Logs message */
+            orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Too many vertices in the list: %d. The maximum allowed is: %d. Using the first %d ones for the shape <%s>", pstResult->stMesh.u32VertexCounter, orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER, orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER, _zConfigID);
+
+            /* Updates vertices number */
+            pstResult->stMesh.u32VertexCounter = orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER;
+          }
+
+          /* For all defined vertices */
+          for(i = 0; i < pstResult->stMesh.u32VertexCounter; i++)
+          {
+            /* Gets its vector */
+            orxConfig_GetListVector(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST, i, &(pstResult->stMesh.avVertices[i]));
+          }
+        }
+        else
+        {
+          /* Logs message */
+          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Vertex list for creating shape <%s> is invalid (missing or less than 3 vertices).", _zConfigID);
+
+          /* Updates status */
+          bSuccess = orxFALSE;
+        }
+      }
+      /* Unknown */
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "<%s> isn't a valid type for a body part.", zShapeType);
+
+        /* Updates status */
+        bSuccess = orxFALSE;
+      }
+    }
+
+    /* Valid? */
+    if(bSuccess == orxFALSE)
+    {
+      /* Logs message */
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't create shape (%s)", _zConfigID);
+
+      orxBank_Free(sstParticleGroup.pstShapeDefBank, pstResult);
+      pstResult = orxNULL;
+    }
+
+    /* Pops previous section */
+    orxConfig_PopSection();
+  }
+  else
+  {
+    /* Logs message */
+    orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't find config section named (%s)", _zConfigID);
+
+    /* Updates result */
+    pstResult = orxNULL;
+  }
+
+  return pstResult;
+}
+
 /***************************************************************************
  * Public functions                                                        *
  ***************************************************************************/
@@ -172,8 +285,30 @@ orxSTATUS orxFASTCALL orxParticleGroup_Init()
     /* Cleans static controller */
     orxMemory_Zero(&sstParticleGroup, sizeof(orxPARTICLEGROUP_STATIC));
 
-    /* Registers structure type */
-    eResult = orxSTRUCTURE_REGISTER(PARTICLEGROUP, orxSTRUCTURE_STORAGE_TYPE_LINKLIST, orxMEMORY_TYPE_MAIN, orxPARTICLEGROUP_KU32_BANK_SIZE, orxNULL);
+    /* Creates banks */
+    sstParticleGroup.pstShapeDefBank   = orxBank_Create(orxPARTICLEGROUP_KU32_SHAPE_DEF_BANK_SIZE, sizeof(orxPARTICLEGROUP_SHAPE_DEF), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
+
+    /* Valid? */
+    if(sstParticleGroup.pstShapeDefBank != orxNULL)
+    {
+      /* Registers structure type */
+      eResult = orxSTRUCTURE_REGISTER(PARTICLEGROUP, orxSTRUCTURE_STORAGE_TYPE_LINKLIST, orxMEMORY_TYPE_MAIN, orxPARTICLEGROUP_KU32_BANK_SIZE, orxNULL);
+    }
+    else
+    {
+      /* Logs message */
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't create particle group shape def banks.");
+
+      /* Deletes banks */
+      if(sstParticleGroup.pstShapeDefBank != orxNULL)
+      {
+        orxBank_Delete(sstParticleGroup.pstShapeDefBank);
+        sstParticleGroup.pstShapeDefBank = orxNULL;
+      }
+
+      /* Updates result */
+      eResult = orxSTATUS_FAILURE;
+    }
   }
   else
   {
@@ -209,6 +344,10 @@ void orxFASTCALL orxParticleGroup_Exit()
   {
     /* Deletes particle group list */
     orxParticleGroup_DeleteAll();
+
+    /* Deletes banks */
+    orxBank_Delete(sstParticleGroup.pstShapeDefBank);
+    sstParticleGroup.pstShapeDefBank = orxNULL;
 
     /* Unregisters structure type */
     orxStructure_Unregister(orxSTRUCTURE_ID_PARTICLEGROUP);
@@ -317,20 +456,18 @@ orxPARTICLEGROUP *orxFASTCALL orxParticleGroup_CreateFromConfig(const orxSTRING 
       {
         stParticleGroupDef.u32Flags |= orxPARTICLEGROUP_DEF_KU32_FLAG_CAN_BE_EMPTY;
       }
-
-      /* Creates particle group */
-      pstResult = orxParticleGroup_Create(&stParticleGroupDef);
-
-      /* Valid? */
-      if(pstResult != orxNULL)
+      if(orxConfig_HasValue(orxPARTICLEGROUP_KZ_CONFIG_SHAPE_LIST))
       {
-        orxU32 i, u32SlotCounter;
+        orxU32 i, u32ShapeCounter;
 
-        /* Gets number of declared slots */
-        u32SlotCounter = orxConfig_GetListCounter(orxPARTICLEGROUP_KZ_CONFIG_SHAPE_LIST);
+        /* Gets number of declared shapes */
+        u32ShapeCounter = orxConfig_GetListCounter(orxPARTICLEGROUP_KZ_CONFIG_SHAPE_LIST);
 
-        /* For all shapes */
-        for(i = 0; i < u32SlotCounter; i++)
+        /* Allocate storage */
+        stParticleGroupDef.apstShapesDef = (const orxPARTICLEGROUP_SHAPE_DEF**) orxMemory_Allocate((orxU32) u32ShapeCounter * sizeof(orxPARTICLEGROUP_SHAPE_DEF*), orxMEMORY_TYPE_TEMP);
+        stParticleGroupDef.s32ShapeCount = 0;
+
+        for(i = 0; i < u32ShapeCounter; i++)
         {
           const orxSTRING zShapeName;
 
@@ -340,11 +477,13 @@ orxPARTICLEGROUP *orxFASTCALL orxParticleGroup_CreateFromConfig(const orxSTRING 
           /* Valid? */
           if((zShapeName != orxNULL) && (zShapeName != orxSTRING_EMPTY))
           {
-            /* Adds shape */
-            if(orxParticleGroup_AddShapeFromConfig(pstResult, zShapeName) == orxSTATUS_FAILURE)
+            orxPARTICLEGROUP_SHAPE_DEF* pstShapeDef = orxParticleGroup_CreateShapeDefFromConfig(zShapeName);
+
+            /* Valid? */
+            if(pstShapeDef != orxNULL)
             {
-              /* Logs message */
-              orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Couldn't add shape <%s> for this particle group.", _zConfigID, orxConfig_GetListString(orxPARTICLEGROUP_KZ_CONFIG_SHAPE_LIST, i));
+              /* Store and increment count */
+              stParticleGroupDef.apstShapesDef[stParticleGroupDef.s32ShapeCount++] = pstShapeDef;
             }
           }
           else
@@ -353,10 +492,25 @@ orxPARTICLEGROUP *orxFASTCALL orxParticleGroup_CreateFromConfig(const orxSTRING 
           }
         }
       }
+
+      /* Creates particle group */
+      pstResult = orxParticleGroup_Create(&stParticleGroupDef);
+
+      /* Clear Shape def bank */
+      orxBank_Clear(sstParticleGroup.pstShapeDefBank);
+
+      if(stParticleGroupDef.apstShapesDef != orxNULL)
+      {
+        orxMemory_Free(stParticleGroupDef.apstShapesDef);
+      }
     }
     else
     {
+      /* Logs message */
       orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "No ParticleSystem defined for (%s).", _zConfigID);
+
+      /* Updates result */
+      pstResult = orxNULL;
     }
 
     /* Pops previous section */
@@ -394,7 +548,8 @@ orxSTATUS orxFASTCALL orxParticleGroup_AddShape(orxPARTICLEGROUP *_pstParticleGr
 
   /* Inits it */
   stParticleGroupDef.hParticleGroup = (orxHANDLE) _pstParticleGroup->pstData;
-  stParticleGroupDef.pstShapeDef = _pstShapeDef;
+  stParticleGroupDef.s32ShapeCount = 1;
+  stParticleGroupDef.apstShapesDef = &_pstShapeDef;
   stParticleGroupDef.u32Flags = _pstParticleGroup->u32DefFlags;
 
   eResult = (orxPhysics_CreateParticleGroup(_pstParticleGroup, &stParticleGroupDef) != orxNULL) ? orxSTATUS_SUCCESS : orxSTATUS_FAILURE;
@@ -416,107 +571,12 @@ orxSTATUS orxFASTCALL orxParticleGroup_AddShapeFromConfig(orxPARTICLEGROUP *_pst
   orxSTRUCTURE_ASSERT(_pstParticleGroup);
   orxASSERT((_zConfigID != orxNULL) && (_zConfigID != orxSTRING_EMPTY));
 
-  /* Pushes section */
-  if((orxConfig_HasSection(_zConfigID) != orxFALSE)
-  && (orxConfig_PushSection(_zConfigID) != orxSTATUS_FAILURE))
+  orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef = orxParticleGroup_CreateShapeDefFromConfig(_zConfigID);
+
+  /* Valid? */
+  if(pstShapeDef != orxNULL)
   {
-    const orxSTRING   zShapeType;
-    orxPARTICLEGROUP_SHAPE_DEF stShapeDef;
-    orxBOOL           bSuccess = orxTRUE;
-
-    /* Clears particle group definition */
-    orxMemory_Zero(&stShapeDef, sizeof(orxPARTICLEGROUP_SHAPE_DEF));
-
-    /* Gets body part type */
-    zShapeType = orxConfig_GetString(orxPARTICLEGROUP_KZ_CONFIG_TYPE);
-
-    /* Inits it */
-    /* Sphere? */
-    if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_SPHERE) == 0)
-    {
-      /* Updates sphere specific info */
-      stShapeDef.u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE;
-      orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_CENTER, &(stShapeDef.stSphere.vCenter));
-      stShapeDef.stSphere.fRadius = orxConfig_GetFloat(orxPARTICLEGROUP_KZ_CONFIG_RADIUS);
-    }
-    /* Box? */
-    else if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_BOX) == 0)
-    {
-      /* Updates box specific info */
-      stShapeDef.u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX;
-      orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_TOP_LEFT, &(stShapeDef.stAABox.stBox.vTL));
-      orxConfig_GetVector(orxPARTICLEGROUP_KZ_CONFIG_BOTTOM_RIGHT, &(stShapeDef.stAABox.stBox.vBR));
-    }
-    /* Mesh */
-    else if(orxString_ICompare(zShapeType, orxPARTICLEGROUP_KZ_TYPE_MESH) == 0)
-    {
-      /* Updates mesh specific info */
-      stShapeDef.u32Flags |= orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_MESH;
-      if((orxConfig_HasValue(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST) != orxFALSE)
-      && ((stShapeDef.stMesh.u32VertexCounter = orxConfig_GetListCounter(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST)) >= 3))
-      {
-        orxU32 i;
-
-        /* Too many defined vertices? */
-        if(stShapeDef.stMesh.u32VertexCounter > orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER)
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Too many vertices in the list: %d. The maximum allowed is: %d. Using the first %d ones for the shape <%s>", stShapeDef.stMesh.u32VertexCounter, orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER, orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER, _zConfigID);
-
-          /* Updates vertices number */
-          stShapeDef.stMesh.u32VertexCounter = orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER;
-        }
-
-        /* For all defined vertices */
-        for(i = 0; i < stShapeDef.stMesh.u32VertexCounter; i++)
-        {
-          /* Gets its vector */
-          orxConfig_GetListVector(orxPARTICLEGROUP_KZ_CONFIG_VERTEX_LIST, i, &(stShapeDef.stMesh.avVertices[i]));
-        }
-      }
-      else
-      {
-        /* Logs message */
-        orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Vertex list for creating shape <%s> is invalid (missing or less than 3 vertices).", _zConfigID);
-
-        /* Updates status */
-        bSuccess = orxFALSE;
-      }
-    }
-    /* Unknown */
-    else
-    {
-      /* Logs message */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "<%s> isn't a valid type for a body part.", zShapeType);
-
-      /* Updates status */
-      bSuccess = orxFALSE;
-    }
-
-    /* Valid? */
-    if(bSuccess != orxFALSE)
-    {
-      eResult = orxParticleGroup_AddShape(_pstParticleGroup, &stShapeDef);
-    }
-    else
-    {
-      /* Logs message */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't create shape (%s)", _zConfigID);
-
-      /* Updates result */
-      eResult = orxSTATUS_FAILURE;
-    }
-
-    /* Pops previous section */
-    orxConfig_PopSection();
-  }
-  else
-  {
-    /* Logs message */
-    orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't find config section named (%s)", _zConfigID);
-
-    /* Updates result */
-    eResult = orxSTATUS_FAILURE;
+    eResult = orxParticleGroup_AddShape(_pstParticleGroup, pstShapeDef);
   }
 
   /* Done! */

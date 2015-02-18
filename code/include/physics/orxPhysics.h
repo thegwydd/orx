@@ -307,7 +307,8 @@ typedef struct __orxPARTICLEGROUP_DEF_t
 {
   const orxSTRING zParticleSystemName;                /**< Particel System used : 4 */
   orxHANDLE hParticleGroup;                           /**< orxPHYSICS_PARTICLEGROUPP* to merge with : 8 */
-  const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef;      /** */
+  const orxPARTICLEGROUP_SHAPE_DEF** apstShapesDef;
+  orxS32    s32ShapeCount;
   orxU32    u32Flags;                                 /**< Control flags : 12 */
 
 } orxPARTICLEGROUP_DEF;

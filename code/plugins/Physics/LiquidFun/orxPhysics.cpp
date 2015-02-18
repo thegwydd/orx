@@ -2634,8 +2634,6 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
   b2ParticleGroup     *poResult = 0;
   b2ParticleGroupDef   stParticleGroupDef;
   b2ParticleSystem    *poParticleSystem;
-  b2CircleShape        stCircleShape;
-  b2PolygonShape       stPolygonShape;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
@@ -2647,6 +2645,8 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
   {
     /* Inits particle group definition */
     stParticleGroupDef.userData          = _hUserData;
+    b2Shape** shapes                     = orxNULL;
+
     if(orxFLAG_TEST(_pstParticleGroupDef->u32Flags, orxPARTICLEGROUP_DEF_KU32_FLAG_SOLID))
     {
       stParticleGroupDef.groupFlags |= b2_solidParticleGroup;
@@ -2659,70 +2659,81 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
     {
       stParticleGroupDef.groupFlags |= b2_particleGroupCanBeEmpty;
     }
+    if(_pstParticleGroupDef->s32ShapeCount > 0)
+    {
+      shapes = new b2Shape*[_pstParticleGroupDef->s32ShapeCount];
+      stParticleGroupDef.shapeCount = _pstParticleGroupDef->s32ShapeCount;
+      stParticleGroupDef.shapes = (const b2Shape* const*)shapes;
+
+      for(int i = 0; i < _pstParticleGroupDef->s32ShapeCount; i++)
+      {
+        const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef = _pstParticleGroupDef->apstShapesDef[i];
+
+        /* Circle? */
+        if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE))
+        {
+          b2CircleShape *pstCircleShape = new b2CircleShape();
+
+          /* Stores shape reference */
+          shapes[i] = pstCircleShape;
+
+          /* Stores its coordinates */
+          pstCircleShape->m_p.Set(sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fX, sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fY);
+          pstCircleShape->m_radius = sstPhysics.fDimensionRatio * pstShapeDef->stSphere.fRadius;
+        }
+        /* Polygon */
+        else
+        {
+          b2PolygonShape  *pstPolygonShape = new b2PolygonShape();
+
+          /* Stores shape reference */
+          shapes[i] = pstPolygonShape;
+
+          /* Box? */
+          if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX))
+          {
+            b2Vec2 avVertexList[4];
+
+            /* Stores its coordinates */
+            avVertexList[0].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
+            avVertexList[1].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
+            avVertexList[2].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
+            avVertexList[3].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
+
+            /* Updates shape */
+            pstPolygonShape->Set(avVertexList, 4);
+          }
+          else
+          {
+            b2Vec2 avVertexList[b2_maxPolygonVertices];
+            orxU32 i;
+
+            /* Checks */
+            orxASSERT(pstShapeDef->stMesh.u32VertexCounter > 0);
+            orxASSERT(orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER <= b2_maxPolygonVertices);
+
+            /* For all the vertices */
+            for(i = 0; i < pstShapeDef->stMesh.u32VertexCounter; i++)
+            {
+              /* Sets its vector */
+              avVertexList[i].Set(sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fX, sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fY);
+            }
+
+            /* Updates shape */
+            pstPolygonShape->Set(avVertexList, (int32)pstShapeDef->stMesh.u32VertexCounter);
+          }
+        }
+      }
+    }
+
     // TODO stParticleGroupDef.flags
     // TODO stParticleGroupDef.color
     // TODO stParticleGroupDef.lifetime
-    // TODO stParticleGroupDef.shapes & .shapeCount
     // TODO stParticleGroupDef.position
     // TODO stParticleGroupDef.angle
     // TODO stParticleGroupDef.linearVelocity
     // TODO stParticleGroupDef.angularVelocity
     // TODO stParticleGroupDef.strength
-    if(_pstParticleGroupDef->pstShapeDef != orxNULL)
-    {
-      const orxPARTICLEGROUP_SHAPE_DEF *pstShapeDef = _pstParticleGroupDef->pstShapeDef;
-
-      /* Circle? */
-      if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_SPHERE))
-      {
-        /* Stores shape reference */
-        stParticleGroupDef.shape = &stCircleShape;
-
-        /* Stores its coordinates */
-        stCircleShape.m_p.Set(sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fX, sstPhysics.fDimensionRatio * pstShapeDef->stSphere.vCenter.fY);
-        stCircleShape.m_radius = sstPhysics.fDimensionRatio * pstShapeDef->stSphere.fRadius;
-      }
-      /* Polygon */
-      else
-      {
-        /* Stores shape reference */
-        stParticleGroupDef.shape = &stPolygonShape;
-
-        /* Box? */
-        if(orxFLAG_TEST(pstShapeDef->u32Flags, orxPARTICLEGROUP_SHAPE_DEF_KU32_FLAG_BOX))
-        {
-          b2Vec2 avVertexList[4];
-
-          /* Stores its coordinates */
-          avVertexList[0].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
-          avVertexList[1].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
-          avVertexList[2].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fY);
-          avVertexList[3].Set(sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vBR.fX, sstPhysics.fDimensionRatio * pstShapeDef->stAABox.stBox.vTL.fY);
-
-          /* Updates shape */
-          stPolygonShape.Set(avVertexList, 4);
-        }
-        else
-        {
-          b2Vec2 avVertexList[b2_maxPolygonVertices];
-          orxU32 i;
-
-          /* Checks */
-          orxASSERT(pstShapeDef->stMesh.u32VertexCounter > 0);
-          orxASSERT(orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER <= b2_maxPolygonVertices);
-
-          /* For all the vertices */
-          for(i = 0; i < pstShapeDef->stMesh.u32VertexCounter; i++)
-          {
-            /* Sets its vector */
-            avVertexList[i].Set(sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fX, sstPhysics.fDimensionRatio * pstShapeDef->stMesh.avVertices[i].fY);
-          }
-
-          /* Updates shape */
-          stPolygonShape.Set(avVertexList, (int32)pstShapeDef->stMesh.u32VertexCounter);
-        }
-      }
-    }
 
     /* Merge with existing group ? */
     if(_pstParticleGroupDef->hParticleGroup != orxHANDLE_UNDEFINED)
@@ -2736,10 +2747,18 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
       poParticleSystem = (b2ParticleSystem*) orxHashTable_Get(sstPhysics.pstParticleSystems, orxString_GetID(_pstParticleGroupDef->zParticleSystemName));
     }
 
-    if(poParticleSystem != orxNULL)
+    /* Creates particle group */
+    poResult = poParticleSystem->CreateParticleGroup(stParticleGroupDef);
+
+    /* free memory */
+    for(int i = 0; i < stParticleGroupDef.shapeCount; i++)
     {
-      /* Creates particle group */
-      poResult = poParticleSystem->CreateParticleGroup(stParticleGroupDef);
+      delete shapes[i];
+    }
+
+    if(shapes != orxNULL)
+    {
+      delete[] shapes;
     }
   }
 
