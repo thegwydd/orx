@@ -120,15 +120,13 @@ typedef void                              (orxFASTCALL *orxMODULE_SETUP_FUNCTION
 
 /** Registers a module
  * @param[in]   _eModuleID                Concerned module ID
+ * @param[in]   _zModuleName              Module name
  * @param[in]   _pfnSetup                 Module setup callback
  * @param[in]   _pfnInit                  Module init callback
  * @param[in]   _pfnExit                  Module exit callback
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-extern orxDLLAPI void orxFASTCALL         orxModule_Register(orxMODULE_ID _eModuleID, const orxMODULE_SETUP_FUNCTION _pfnSetup, const orxMODULE_INIT_FUNCTION _pfnInit, const orxMODULE_EXIT_FUNCTION _pfnExit);
-
-/** Registers all modules. ! Needs to be updated for all new modules ! */
-extern orxDLLAPI void orxFASTCALL         orxModule_RegisterAll();
+extern orxDLLAPI void orxFASTCALL         orxModule_Register(orxMODULE_ID _eModuleID, const orxSTRING _zModuleName, const orxMODULE_SETUP_FUNCTION _pfnSetup, const orxMODULE_INIT_FUNCTION _pfnInit, const orxMODULE_EXIT_FUNCTION _pfnExit);
 
 /** Adds dependencies between 2 modules
  * @param[in]   _eModuleID                Concerned module ID
@@ -142,38 +140,28 @@ extern orxDLLAPI void orxFASTCALL         orxModule_AddDependency(orxMODULE_ID _
  */
 extern orxDLLAPI void orxFASTCALL         orxModule_AddOptionalDependency(orxMODULE_ID _eModuleID, orxMODULE_ID _eDependID);
 
-/** Calls a module setup callback
- * @param[in]   _eModuleID                Concerned module ID
- */
-extern orxDLLAPI void orxFASTCALL         orxModule_Setup(orxMODULE_ID _eModuleID);
-
-/** Calls all module setups */
-extern orxDLLAPI void orxFASTCALL         orxModule_SetupAll();
-
 /** Inits a module
  * @param[in]   _eModuleID                Concerned module ID
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL    orxModule_Init(orxMODULE_ID _eModuleID);
 
-/** Inits all modules
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL    orxModule_InitAll();
-
 /** Exits from a module
  * @param[in]   _eModuleID                Concerned module ID
  */
 extern orxDLLAPI void orxFASTCALL         orxModule_Exit(orxMODULE_ID _eModuleID);
-
-/** Exits from all modules.*/
-extern orxDLLAPI void orxFASTCALL         orxModule_ExitAll();
 
 /** Is module initialized?
  * @param[in]   _eModuleID                Concerned module ID
  * @return      orxTRUE / orxFALSE
  */
 extern orxDLLAPI orxBOOL orxFASTCALL      orxModule_IsInitialized(orxMODULE_ID _eModuleID);
+
+/** Gets module name
+ * @param[in]   _eModuleID                Concerned module ID
+ * @return Module name / orxSTRING_EMPTY
+ */
+extern orxDLLAPI const orxSTRING orxFASTCALL orxModule_GetName(orxMODULE_ID _eModuleID);
 
 #endif /* _orxMODULE_H_ */
 

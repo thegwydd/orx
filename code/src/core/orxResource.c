@@ -88,7 +88,7 @@
 #define orxRESOURCE_KZ_CONFIG_SECTION                 "Resource"                      /**< Config section name */
 #define orxRESOURCE_KZ_CONFIG_WATCH_LIST              "WatchList"                     /**< Config watch list */
 
-#define orxRESOURCE_KU32_REQUEST_LIST_SIZE            512                             /**< Request list size */
+#define orxRESOURCE_KU32_REQUEST_LIST_SIZE            2048                            /**< Request list size */
 
 #define orxRESOURCE_KZ_THREAD_NAME                    "Resource"
 
@@ -377,13 +377,13 @@ static orxS64 orxFASTCALL orxResource_File_Write(orxHANDLE _hResource, orxS64 _s
 static orxINLINE void orxResource_DeleteGroup(orxRESOURCE_GROUP *_pstGroup)
 {
   orxRESOURCE_INFO *pstResourceInfo;
-  orxU32            u32Key;
+  orxU64            u64Key;
   orxHANDLE         hIterator;
 
   /* For all cached resources */
-  for(hIterator = orxHashTable_GetNext(_pstGroup->pstCacheTable, orxHANDLE_UNDEFINED, &u32Key, (void **)&pstResourceInfo);
+  for(hIterator = orxHashTable_GetNext(_pstGroup->pstCacheTable, orxHANDLE_UNDEFINED, &u64Key, (void **)&pstResourceInfo);
       hIterator != orxHANDLE_UNDEFINED;
-      hIterator = orxHashTable_GetNext(_pstGroup->pstCacheTable, hIterator, &u32Key, (void **)&pstResourceInfo))
+      hIterator = orxHashTable_GetNext(_pstGroup->pstCacheTable, hIterator, &u64Key, (void **)&pstResourceInfo))
   {
     /* Deletes its location */
     orxMemory_Free(pstResourceInfo->zLocation);
@@ -783,7 +783,7 @@ static void orxFASTCALL orxResource_Watch(const orxCLOCK_INFO *_pstClockInfo, vo
     if(pstGroup != orxNULL)
     {
       static orxHANDLE  hIterator;
-      orxU32            u32Key;
+      orxU64            u64Key;
       orxRESOURCE_INFO *pstResourceInfo;
 
       /* New group? */
@@ -797,9 +797,9 @@ static void orxFASTCALL orxResource_Watch(const orxCLOCK_INFO *_pstClockInfo, vo
       }
 
       /* For all its cached resources */
-      for(hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u32Key, (void **)&pstResourceInfo);
+      for(hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u64Key, (void **)&pstResourceInfo);
           hIterator != orxHANDLE_UNDEFINED;
-          hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u32Key, (void **)&pstResourceInfo))
+          hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u64Key, (void **)&pstResourceInfo))
       {
         /* Does its type support time? */
         if(pstResourceInfo->pstTypeInfo->pfnGetTime != orxNULL)
@@ -1629,7 +1629,7 @@ const orxSTRING orxFASTCALL orxResource_Locate(const orxSTRING _zGroup, const or
               /* Inits it */
               pstResourceInfo->pstTypeInfo  = &(pstType->stInfo);
               pstResourceInfo->s64Time      = orxRESOURCE_KU32_WATCH_TIME_UNINITIALIZED;
-              pstResourceInfo->zLocation    = (orxSTRING)orxMemory_Allocate(orxString_GetLength(pstType->stInfo.zTag) + orxString_GetLength(zLocation) + 2, orxMEMORY_TYPE_MAIN);
+              pstResourceInfo->zLocation    = (orxSTRING)orxMemory_Allocate(orxString_GetLength(pstType->stInfo.zTag) + orxString_GetLength(zLocation) + 2, orxMEMORY_TYPE_TEXT);
               orxASSERT(pstResourceInfo->zLocation != orxNULL);
               orxString_Print(pstResourceInfo->zLocation, "%s%c%s", pstType->stInfo.zTag, orxRESOURCE_KC_LOCATION_SEPARATOR, zLocation);
               pstResourceInfo->u32GroupID   = u32GroupID;
@@ -1734,7 +1734,7 @@ const orxSTRING orxFASTCALL orxResource_LocateInStorage(const orxSTRING _zGroup,
               }
 
               /* Creates new location */
-              sstResource.zLastUncachedLocation = (orxSTRING)orxMemory_Allocate(orxString_GetLength(pstType->stInfo.zTag) + orxString_GetLength(zLocation) + 2, orxMEMORY_TYPE_MAIN);
+              sstResource.zLastUncachedLocation = (orxSTRING)orxMemory_Allocate(orxString_GetLength(pstType->stInfo.zTag) + orxString_GetLength(zLocation) + 2, orxMEMORY_TYPE_TEXT);
               orxASSERT(sstResource.zLastUncachedLocation != orxNULL);
               orxString_Print(sstResource.zLastUncachedLocation, "%s%c%s", pstType->stInfo.zTag, orxRESOURCE_KC_LOCATION_SEPARATOR, zLocation);
 
@@ -1965,7 +1965,7 @@ orxHANDLE orxFASTCALL orxResource_Open(const orxSTRING _zLocation, orxBOOL _bEra
         orxBank_Free(sstResource.pstOpenInfoBank, pstOpenInfo);
 
         /* Logs message */
-        orxDEBUG_PRINT(orxDEBUG_LEVEL_SYSTEM, "Can't open resource <%s> of type <%s>: unable to open the location.", _zLocation);
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_SYSTEM, "Can't open resource <%s> of type <%s>: unable to open the location.", _zLocation, pstType->stInfo.zTag);
       }
     }
     else
@@ -2262,18 +2262,18 @@ orxU32 orxFASTCALL orxResource_GetPendingOpCounter(const orxHANDLE _hResource)
  */
 orxU32 orxFASTCALL orxResource_GetTotalPendingOpCounter()
 {
-  orxU32 u32InIndex, u32ProcessIndex;
+  orxU32 u32InIndex, u32OutIndex;
   orxU32 u32Result = 0;
 
   /* Checks */
   orxASSERT(orxFLAG_TEST(sstResource.u32Flags, orxRESOURCE_KU32_STATIC_FLAG_READY));
 
   /* Gets indices */
-  u32InIndex      = sstResource.u32RequestInIndex;
-  u32ProcessIndex = sstResource.u32RequestProcessIndex;
+  u32InIndex  = sstResource.u32RequestInIndex;
+  u32OutIndex = sstResource.u32RequestOutIndex;
 
   /* Update result */
-  u32Result = (u32InIndex >= u32ProcessIndex) ? u32InIndex - u32ProcessIndex : u32InIndex + (orxRESOURCE_KU32_REQUEST_LIST_SIZE - u32ProcessIndex);
+  u32Result = (u32InIndex >= u32OutIndex) ? u32InIndex - u32OutIndex : u32InIndex + (orxRESOURCE_KU32_REQUEST_LIST_SIZE - u32OutIndex);
 
   /* Has pending operations? */
   if(u32Result != 0)
@@ -2428,13 +2428,13 @@ orxSTATUS orxFASTCALL orxResource_ClearCache()
         pstGroup = (orxRESOURCE_GROUP *)orxBank_GetNext(sstResource.pstGroupBank, pstGroup))
     {
       orxHANDLE         hIterator;
-      orxU32            u32Key;
+      orxU64            u64Key;
       orxRESOURCE_INFO *pstResourceInfo;
 
       /* For all cached resources */
-      for(hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, orxHANDLE_UNDEFINED, &u32Key, (void **)&pstResourceInfo);
+      for(hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, orxHANDLE_UNDEFINED, &u64Key, (void **)&pstResourceInfo);
           hIterator != orxHANDLE_UNDEFINED;
-          hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u32Key, (void **)&pstResourceInfo))
+          hIterator = orxHashTable_GetNext(pstGroup->pstCacheTable, hIterator, &u64Key, (void **)&pstResourceInfo))
       {
         /* Deletes its location */
         orxMemory_Free(pstResourceInfo->zLocation);

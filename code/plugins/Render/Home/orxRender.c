@@ -751,13 +751,13 @@ static orxINLINE void orxRender_Home_RenderProfiler()
   {
     stTransform.fDstX = fBorder;
     stTransform.fDstY = orxMath_Ceil(orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT * fScreenHeight + orxFLOAT_1);
-    fHeight           = orxMath_Floor((orxFLOAT_1 - orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT) * fScreenHeight / orxS2F(s32UniqueCounter));
+    fHeight           = orxMath_Floor((orxFLOAT_1 - orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT) * fScreenHeight / ((s32UniqueCounter) ? orxS2F(s32UniqueCounter) : orxFLOAT_1));
   }
   else
   {
     stTransform.fDstX = orxMath_Ceil(orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT * fScreenWidth + orxFLOAT_1);
     stTransform.fDstY = fScreenHeight - fBorder;
-    fHeight           = orxMath_Floor((orxFLOAT_1 - orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT) * fScreenWidth / orxS2F(s32UniqueCounter));
+    fHeight           = orxMath_Floor((orxFLOAT_1 - orxRENDER_KF_PROFILER_SEPARATOR_HEIGHT) * fScreenWidth / ((s32UniqueCounter) ? orxS2F(s32UniqueCounter) : orxFLOAT_1));
   }
   fHeight = orxCLAMP(fHeight, orxRENDER_KF_PROFILER_BAR_MIN_HEIGHT, orxRENDER_KF_PROFILER_BAR_MAX_HEIGHT);
 
@@ -891,20 +891,20 @@ static orxINLINE void orxRender_Home_RenderProfiler()
   orxDisplay_SetBitmapColor(pstFontBitmap, orx2RGBA(0xFF, 0xFF, 0xFF, 0xCC));
 
   /* Gets hue delta */
-  fHueDelta = orxRENDER_KF_PROFILER_HUE_UNSTACK_RANGE / orxS2F(s32MarkerCounter);
+  fHueDelta = orxRENDER_KF_PROFILER_HUE_UNSTACK_RANGE / ((s32MarkerCounter != 0) ? orxS2F(s32MarkerCounter) : 1);
 
   /* Updates vertical values & marker's height */
   if(bLandscape != orxFALSE)
   {
     stTransform.fDstX = orxRENDER_KF_PROFILER_SEPARATOR_WIDTH * fScreenWidth + fBorder;
     stTransform.fDstY = orxFLOAT_1;
-    fHeight           = orxMath_Floor(fScreenHeight / orxS2F(s32MarkerCounter - s32UniqueCounter));
+    fHeight           = orxMath_Floor(fScreenHeight / ((s32MarkerCounter > s32UniqueCounter) ? orxS2F(s32MarkerCounter - s32UniqueCounter) : 1));
   }
   else
   {
     stTransform.fDstX = orxFLOAT_1;
     stTransform.fDstY = fScreenHeight - (orxRENDER_KF_PROFILER_SEPARATOR_WIDTH * fScreenHeight + fBorder);
-    fHeight           = orxMath_Floor(fScreenWidth / orxS2F(s32MarkerCounter - s32UniqueCounter));
+    fHeight           = orxMath_Floor(fScreenWidth / ((s32MarkerCounter > s32UniqueCounter) ? orxS2F(s32MarkerCounter - s32UniqueCounter) : 1));
   }
   fHeight = orxCLAMP(fHeight, orxRENDER_KF_PROFILER_BAR_MIN_HEIGHT, orxRENDER_KF_PROFILER_BAR_MAX_HEIGHT);
   stTransform.fScaleY = fHeight - orx2F(2.0f);
@@ -1554,9 +1554,6 @@ static orxINLINE void orxRender_Home_RenderViewport(const orxVIEWPORT *_pstViewp
         orxFLOAT  fTextureWidth, fTextureHeight;
         orxVECTOR vViewportCenter;
 
-        /* Sets destination bitmap */
-        orxDisplay_SetDestinationBitmaps(apstBitmapList, u32TextureCounter);
-
         /* Gets texture size */
         orxTexture_GetSize(apstTextureList[0], &fTextureWidth, &fTextureHeight);
 
@@ -1569,6 +1566,9 @@ static orxINLINE void orxRender_Home_RenderViewport(const orxVIEWPORT *_pstViewp
 
         /* Gets its center */
         orxAABox_GetCenter(&stViewportBox, &vViewportCenter);
+
+        /* Sets destination bitmap */
+        orxDisplay_SetDestinationBitmaps(apstBitmapList, u32TextureCounter);
 
         /* Does it intersect with texture */
         if(orxAABox_Test2DIntersection(&stTextureBox, &stViewportBox) != orxFALSE)
@@ -1622,13 +1622,13 @@ static orxINLINE void orxRender_Home_RenderViewport(const orxVIEWPORT *_pstViewp
           {
             /* Sets its clipping */
             orxDisplay_SetBitmapClipping(apstBitmapList[i], orxF2U(stViewportBox.vTL.fX), orxF2U(stViewportBox.vTL.fY), orxF2U(stViewportBox.vBR.fX), orxF2U(stViewportBox.vBR.fY));
+          }
 
-            /* Does viewport have a background color? */
-            if(bHasColor != orxFALSE)
-            {
-              /* Clears bitmap */
-              orxDisplay_ClearBitmap(apstBitmapList[i], orxColor_ToRGBA(&stColor));
-            }
+          /* Does viewport have a background color? */
+          if(bHasColor != orxFALSE)
+          {
+            /* Clears bitmap */
+            orxDisplay_ClearBitmap(orxNULL, orxColor_ToRGBA(&stColor));
           }
 
           /* Gets camera */
@@ -2073,11 +2073,6 @@ static orxINLINE void orxRender_Home_RenderViewport(const orxVIEWPORT *_pstViewp
       orxDEBUG_PRINT(orxDEBUG_LEVEL_RENDER, "Not a valid bitmap.");
     }
   }
-  else
-  {
-    /* Logs message */
-    orxDEBUG_PRINT(orxDEBUG_LEVEL_RENDER, "Viewport is not enabled.");
-  }
 
   /* Profiles */
   orxPROFILER_POP_MARKER();
@@ -2105,6 +2100,7 @@ static void orxFASTCALL orxRender_Home_RenderAll(const orxCLOCK_INFO *_pstClockI
   if(bRender != orxFALSE)
   {
     orxVIEWPORT  *pstViewport;
+    orxBITMAP    *pstScreen;
     orxFLOAT      fWidth, fHeight;
 
     /* Clears screen */
@@ -2122,102 +2118,96 @@ static void orxFASTCALL orxRender_Home_RenderAll(const orxCLOCK_INFO *_pstClockI
       orxRender_Home_RenderViewport(pstViewport);
     }
 
-    /* Sends render stop event */
-    bRender = orxEvent_SendShort(orxEVENT_TYPE_RENDER, orxRENDER_EVENT_STOP);
-
     /* Increases FPS counter */
     orxFPS_IncreaseFrameCounter();
 
-    /* Should render? */
-    if(bRender != orxFALSE)
+    /* Gets screen bitmap */
+    pstScreen = orxDisplay_GetScreenBitmap();
+
+    /* Restores screen as destination bitmap */
+    orxDisplay_SetDestinationBitmaps(&pstScreen, 1);
+
+    /* Restores screen bitmap clipping */
+    orxDisplay_GetScreenSize(&fWidth, &fHeight);
+    orxDisplay_SetBitmapClipping(orxDisplay_GetScreenBitmap(), 0, 0, orxF2U(fWidth), orxF2U(fHeight));
+
+    /* Pushes render config section */
+    orxConfig_PushSection(orxRENDER_KZ_CONFIG_SECTION);
+
+    /* Should render FPS? */
+    if(orxConfig_GetBool(orxRENDER_KZ_CONFIG_SHOW_FPS) != orxFALSE)
     {
-      orxBITMAP *pstScreen;
-
-      /* Gets screen bitmap */
-      pstScreen = orxDisplay_GetScreenBitmap();
-
-      /* Restores screen as destination bitmap */
-      orxDisplay_SetDestinationBitmaps(&pstScreen, 1);
-
-      /* Restores screen bitmap clipping */
-      orxDisplay_GetScreenSize(&fWidth, &fHeight);
-      orxDisplay_SetBitmapClipping(orxDisplay_GetScreenBitmap(), 0, 0, orxF2U(fWidth), orxF2U(fHeight));
-
-      /* Pushes render config section */
-      orxConfig_PushSection(orxRENDER_KZ_CONFIG_SECTION);
-
-      /* Should render FPS? */
-      if(orxConfig_GetBool(orxRENDER_KZ_CONFIG_SHOW_FPS) != orxFALSE)
-      {
-        /* Renders it */
-        orxRender_Home_RenderFPS();
-      }
-
-      /* Should render profiler */
-      if(orxConfig_GetBool(orxRENDER_KZ_CONFIG_SHOW_PROFILER) != orxFALSE)
-      {
-        /* Renders it */
-        orxRender_Home_RenderProfiler();
-
-        /* Doesn't have the reset maxima callback yet? */
-        if(!orxFLAG_TEST(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA))
-        {
-          /* Adds it */
-          orxClock_AddGlobalTimer(orxRender_Home_ResetProfilerMaxima, orxFLOAT_1, -1, orxNULL);
-
-          /* Updates status */
-          orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA, orxRENDER_KU32_STATIC_FLAG_NONE);
-
-          /* Enables input set */
-          orxInput_EnableSet(orxRENDER_KZ_INPUT_SET, orxTRUE);
-        }
-
-        /* Updates status */
-        orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_PROFILER, orxRENDER_KU32_STATIC_FLAG_NONE);
-      }
-      else
-      {
-        /* Has the reset maxima callback? */
-        if(orxFLAG_TEST(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA))
-        {
-          /* Removes it */
-          orxClock_RemoveGlobalTimer(orxRender_Home_ResetProfilerMaxima, orx2F(-1.0f), orxNULL);
-
-          /* Updates status */
-          orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_NONE, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA);
-
-          /* Disables input set */
-          orxInput_EnableSet(orxRENDER_KZ_INPUT_SET, orxFALSE);
-        }
-
-        /* Updates status */
-        orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_NONE, orxRENDER_KU32_STATIC_FLAG_PROFILER);
-      }
-
-      /* Is console enabled? */
-      if(orxConsole_IsEnabled() != orxFALSE)
-      {
-        /* Updates its offset */
-        sstRender.fConsoleOffset += orxMath_Floor(_pstClockInfo->fDT * orxRENDER_KF_CONSOLE_SPEED);
-        sstRender.fConsoleOffset  = orxMIN(sstRender.fConsoleOffset, orxFLOAT_0);
-      }
-      else
-      {
-        /* Updates its offset */
-        sstRender.fConsoleOffset -= orxMath_Floor(_pstClockInfo->fDT * orxRENDER_KF_CONSOLE_SPEED);
-        sstRender.fConsoleOffset  = orxMAX(sstRender.fConsoleOffset, sstRender.fDefaultConsoleOffset);
-      }
-
-      /* Should render console? */
-      if(sstRender.fConsoleOffset != sstRender.fDefaultConsoleOffset)
-      {
-        /* Renders it */
-        orxRender_Home_RenderConsole();
-      }
-
-      /* Pops previous section */
-      orxConfig_PopSection();
+      /* Renders it */
+      orxRender_Home_RenderFPS();
     }
+
+    /* Should render profiler */
+    if(orxConfig_GetBool(orxRENDER_KZ_CONFIG_SHOW_PROFILER) != orxFALSE)
+    {
+      /* Renders it */
+      orxRender_Home_RenderProfiler();
+
+      /* Doesn't have the reset maxima callback yet? */
+      if(!orxFLAG_TEST(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA))
+      {
+        /* Adds it */
+        orxClock_AddGlobalTimer(orxRender_Home_ResetProfilerMaxima, orxFLOAT_1, -1, orxNULL);
+
+        /* Updates status */
+        orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA, orxRENDER_KU32_STATIC_FLAG_NONE);
+
+        /* Enables input set */
+        orxInput_EnableSet(orxRENDER_KZ_INPUT_SET, orxTRUE);
+      }
+
+      /* Updates status */
+      orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_PROFILER, orxRENDER_KU32_STATIC_FLAG_NONE);
+    }
+    else
+    {
+      /* Has the reset maxima callback? */
+      if(orxFLAG_TEST(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA))
+      {
+        /* Removes it */
+        orxClock_RemoveGlobalTimer(orxRender_Home_ResetProfilerMaxima, orx2F(-1.0f), orxNULL);
+
+        /* Updates status */
+        orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_NONE, orxRENDER_KU32_STATIC_FLAG_RESET_MAXIMA);
+
+        /* Disables input set */
+        orxInput_EnableSet(orxRENDER_KZ_INPUT_SET, orxFALSE);
+      }
+
+      /* Updates status */
+      orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_NONE, orxRENDER_KU32_STATIC_FLAG_PROFILER);
+    }
+
+    /* Is console enabled? */
+    if(orxConsole_IsEnabled() != orxFALSE)
+    {
+      /* Updates its offset */
+      sstRender.fConsoleOffset += orxMath_Floor(_pstClockInfo->fDT * orxRENDER_KF_CONSOLE_SPEED);
+      sstRender.fConsoleOffset  = orxMIN(sstRender.fConsoleOffset, orxFLOAT_0);
+    }
+    else
+    {
+      /* Updates its offset */
+      sstRender.fConsoleOffset -= orxMath_Floor(_pstClockInfo->fDT * orxRENDER_KF_CONSOLE_SPEED);
+      sstRender.fConsoleOffset  = orxMAX(sstRender.fConsoleOffset, sstRender.fDefaultConsoleOffset);
+    }
+
+    /* Should render console? */
+    if(sstRender.fConsoleOffset != sstRender.fDefaultConsoleOffset)
+    {
+      /* Renders it */
+      orxRender_Home_RenderConsole();
+    }
+
+    /* Pops previous section */
+    orxConfig_PopSection();
+
+    /* Sends render stop event */
+    orxEvent_SendShort(orxEVENT_TYPE_RENDER, orxRENDER_EVENT_STOP);
 
     /* Updates status */
     orxFLAG_SET(sstRender.u32Flags, orxRENDER_KU32_STATIC_FLAG_PRESENT_REQUEST, orxRENDER_KU32_STATIC_FLAG_NONE);
@@ -2798,14 +2788,14 @@ orxSTATUS orxFASTCALL orxRender_Home_Init()
             orxInput_SelectSet(orxRENDER_KZ_INPUT_SET);
 
             /* Binds console inputs */
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_TOGGLE_HISTORY, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_TOGGLE_HISTORY);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PAUSE, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PAUSE);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_FRAME, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_FRAME);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_FRAME, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_FRAME);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_DEPTH, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_DEPTH);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_DEPTH, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_DEPTH);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_THREAD, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_THREAD);
-            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_THREAD, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_THREAD);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_TOGGLE_HISTORY, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_TOGGLE_HISTORY, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PAUSE, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PAUSE, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_FRAME, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_FRAME, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_FRAME, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_FRAME, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_DEPTH, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_DEPTH, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_DEPTH, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_DEPTH, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_PREVIOUS_THREAD, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_PREVIOUS_THREAD, orxINPUT_MODE_FULL);
+            orxInput_Bind(orxRENDER_KZ_INPUT_PROFILER_NEXT_THREAD, orxINPUT_TYPE_KEYBOARD_KEY, orxRENDER_KE_KEY_PROFILER_NEXT_THREAD, orxINPUT_MODE_FULL);
 
             /* Restores previous set */
             orxInput_SelectSet(zPreviousSet);

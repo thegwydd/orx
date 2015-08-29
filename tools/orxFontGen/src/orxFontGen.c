@@ -1094,13 +1094,7 @@ int main(int argc, char **argv)
   orxDEBUG_INIT();
 
   // Registers main module
-  orxModule_Register(orxMODULE_ID_MAIN, Setup, Init, Exit);
-
-  // Registers all other modules
-  orxModule_RegisterAll();
-
-  // Calls all modules setup
-  orxModule_SetupAll();
+  orxModule_Register(orxMODULE_ID_MAIN, "MAIN", Setup, Init, Exit);
 
   // Sends the command line arguments to orxParam module
   if(orxParam_SetArgs(argc, argv) != orxSTATUS_FAILURE)
@@ -1118,9 +1112,6 @@ int main(int argc, char **argv)
       // Exits from engine
       orxModule_Exit(orxMODULE_ID_MAIN);
     }
-
-    // Exits from all other modules
-    orxModule_ExitAll();
   }
 
   // Exits from the Debug system

@@ -115,6 +115,7 @@ static void orxFASTCALL orx_MainSetup()
   orxModule_AddDependency(orxMODULE_ID_MAIN, orxMODULE_ID_PLUGIN);
   orxModule_AddDependency(orxMODULE_ID_MAIN, orxMODULE_ID_OBJECT);
   orxModule_AddDependency(orxMODULE_ID_MAIN, orxMODULE_ID_PARTICLEGROUP);
+  orxModule_AddDependency(orxMODULE_ID_MAIN, orxMODULE_ID_RENDER);
 
   orxModule_AddOptionalDependency(orxMODULE_ID_MAIN, orxMODULE_ID_CONSOLE);
   orxModule_AddOptionalDependency(orxMODULE_ID_MAIN, orxMODULE_ID_PROFILER);
@@ -164,16 +165,10 @@ static orxINLINE void orx_Execute(orxU32 _u32NbParams, orxSTRING _azParams[], co
   orxASSERT(_pfnRun != orxNULL);
 
   /* Registers main module */
-  orxModule_Register(orxMODULE_ID_MAIN, orx_MainSetup, _pfnInit, _pfnExit);
+  orxModule_Register(orxMODULE_ID_MAIN, "MAIN", orx_MainSetup, _pfnInit, _pfnExit);
 
   /* Stores run callback */
   spfnRun = _pfnRun;
-
-  /* Registers all other modules */
-  orxModule_RegisterAll();
-
-  /* Calls all modules setup */
-  orxModule_SetupAll();
 
   /* Sends the command line arguments to orxParam module */
   if(orxParam_SetArgs(_u32NbParams, _azParams) != orxSTATUS_FAILURE)
@@ -218,13 +213,7 @@ static orxINLINE void orx_Execute(orxU32 _u32NbParams, orxSTRING _azParams[], co
   orxASSERT(_pfnRun != orxNULL);
 
   /* Registers main module */
-  orxModule_Register(orxMODULE_ID_MAIN, orx_MainSetup, _pfnInit, _pfnExit);
-
-  /* Registers all other modules */
-  orxModule_RegisterAll();
-
-  /* Calls all modules setup */
-  orxModule_SetupAll();
+  orxModule_Register(orxMODULE_ID_MAIN, "MAIN", orx_MainSetup, _pfnInit, _pfnExit);
 
   /* Sends the command line arguments to orxParam module */
   if(orxParam_SetArgs(_u32NbParams, _azParams) != orxSTATUS_FAILURE)
@@ -275,13 +264,9 @@ static orxINLINE void orx_Execute(orxU32 _u32NbParams, orxSTRING _azParams[], co
       /* Exits from engine */
       orxModule_Exit(orxMODULE_ID_MAIN);
     }
-
-    /* Exits from all modules */
-    orxModule_ExitAll();
   }
 
   /* Exits from the Debug system */
-
   orxDEBUG_EXIT();
 }
 
@@ -305,13 +290,7 @@ static orxINLINE void orx_Execute(orxU32 _u32NbParams, orxSTRING _azParams[], co
   orxASSERT(_pfnRun != orxNULL);
 
   /* Registers main module */
-  orxModule_Register(orxMODULE_ID_MAIN, orx_MainSetup, _pfnInit, _pfnExit);
-
-  /* Registers all other modules */
-  orxModule_RegisterAll();
-
-  /* Calls all modules setup */
-  orxModule_SetupAll();
+  orxModule_Register(orxMODULE_ID_MAIN, "MAIN", orx_MainSetup, _pfnInit, _pfnExit);
 
   /* Sends the command line arguments to orxParam module */
   if(orxParam_SetArgs(_u32NbParams, _azParams) != orxSTATUS_FAILURE)
@@ -360,13 +339,9 @@ static orxINLINE void orx_Execute(orxU32 _u32NbParams, orxSTRING _azParams[], co
       /* Exits from engine */
       orxModule_Exit(orxMODULE_ID_MAIN);
     }
-
-    /* Exits from all modules */
-    orxModule_ExitAll();
   }
 
   /* Exits from the Debug system */
-
   orxDEBUG_EXIT();
 }
 
@@ -421,9 +396,124 @@ static orxINLINE void orx_WinExecute(const orxMODULE_INIT_FUNCTION _pfnInit, con
 
 #endif /* __orxPLUGIN__ */
 
+/** Logs all user-generated active structures
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
+static orxINLINE orxSTATUS orx_LogAllStructures()
+{
+#define orx_MAX_NAME_LENGTH                 20
+#define orx_DECLARE_STRUCTURE_INFO(ID, FN)  {orxSTRUCTURE_ID_##ID, (orxSTRUCTURE_GETNAME)FN}
+
+  typedef orxSTRING(orxFASTCALL *orxSTRUCTURE_GETNAME)(const void *_pStructure);
+
+  static struct
+  {
+    orxSTRUCTURE_ID       eID;
+    orxSTRUCTURE_GETNAME  pfnGetName;
+  }
+  sastStructureInfoList[] =
+  {
+    orx_DECLARE_STRUCTURE_INFO(OBJECT,    orxObject_GetName),
+    orx_DECLARE_STRUCTURE_INFO(FONT,      orxFont_GetName),
+    orx_DECLARE_STRUCTURE_INFO(VIEWPORT,  orxViewport_GetName),
+    orx_DECLARE_STRUCTURE_INFO(ANIMSET,   orxAnimSet_GetName),
+    orx_DECLARE_STRUCTURE_INFO(ANIM,      orxAnim_GetName),
+    orx_DECLARE_STRUCTURE_INFO(BODY,      orxBody_GetName),
+    orx_DECLARE_STRUCTURE_INFO(CAMERA,    orxCamera_GetName),
+    orx_DECLARE_STRUCTURE_INFO(CLOCK,     orxClock_GetName),
+    orx_DECLARE_STRUCTURE_INFO(FX,        orxFX_GetName),
+    orx_DECLARE_STRUCTURE_INFO(GRAPHIC,   orxGraphic_GetName),
+    orx_DECLARE_STRUCTURE_INFO(SHADER,    orxShader_GetName),
+    orx_DECLARE_STRUCTURE_INFO(SOUND,     orxSound_GetName),
+    orx_DECLARE_STRUCTURE_INFO(SPAWNER,   orxSpawner_GetName),
+    orx_DECLARE_STRUCTURE_INFO(TEXT,      orxText_GetName),
+    orx_DECLARE_STRUCTURE_INFO(TEXTURE,   orxTexture_GetName),
+    orx_DECLARE_STRUCTURE_INFO(TIMELINE,  orxNULL)
+  };
+  orxU32        i;
+  orxHASHTABLE *pstTable;
+  orxSTATUS     eResult = orxSTATUS_FAILURE;
+
+  /* Creates table */
+  pstTable = orxHashTable_Create(1024, orxHASHTABLE_KU32_FLAG_NONE, orxMEMORY_TYPE_TEMP);
+
+  /* Valid? */
+  if(pstTable != orxNULL)
+  {
+    orxCHAR acBuffer[1024] = {0};
+    orxU32  u32DebugFlags;
+
+    /* Backups debug flags */
+    u32DebugFlags = orxDEBUG_GET_FLAGS();
+
+    /* Sets new debug flags */
+    orxDEBUG_SET_FLAGS(orxDEBUG_KU32_STATIC_FLAG_NONE,
+                       orxDEBUG_KU32_STATIC_FLAG_TIMESTAMP | orxDEBUG_KU32_STATIC_FLAG_TYPE);
+
+    /* Logs header */
+    orxLOG("*** BEGIN STRUCTURE LOG ***\n");
+
+    /* For all IDs */
+    for(i = 0; i < orxARRAY_GET_ITEM_COUNT(sastStructureInfoList); i++)
+    {
+      orxSTRUCTURE *pstStructure;
+
+      /* Checks */
+      orxASSERT(orxStructure_GetStorageType(sastStructureInfoList[i].eID) == orxSTRUCTURE_STORAGE_TYPE_LINKLIST);
+
+      /* For all structures */
+      for(pstStructure = orxStructure_GetFirst(sastStructureInfoList[i].eID);
+          pstStructure != orxNULL;
+          pstStructure = orxStructure_GetNext(pstStructure))
+      {
+        /* Is owner-less? */
+        if(orxStructure_GetOwner(pstStructure) == orxNULL)
+        {
+          /* Not already logged? */
+          if(orxHashTable_Get(pstTable, orxStructure_GetGUID(pstStructure)) == orxNULL)
+          {
+            /* Adds it to table */
+            orxHashTable_Set(pstTable, orxStructure_GetGUID(pstStructure), pstStructure);
+
+            /* Logs it */
+            if(sastStructureInfoList[i].pfnGetName != orxNULL)
+            {
+              orxU32 u32Offset;
+              u32Offset = orxString_NPrint(acBuffer, sizeof(acBuffer) - 1, "%-8s \"%s\"", orxStructure_GetIDString(sastStructureInfoList[i].eID), sastStructureInfoList[i].pfnGetName(pstStructure));
+              orxLOG("%s%*s[% 016llX]\n", acBuffer, orxMAX(0, orx_MAX_NAME_LENGTH + 12 - u32Offset), orxSTRING_EMPTY, pstStructure->u64GUID);
+            }
+            else
+            {
+              orxLOG("%-8s %*s [%016llX]\n", orxStructure_GetIDString(sastStructureInfoList[i].eID), orx_MAX_NAME_LENGTH + 2, orxSTRING_EMPTY, pstStructure->u64GUID);
+            }
+
+            //! TODO: Print branch owned by this structure
+          }
+        }
+      }
+    }
+
+    /* Logs footer */
+    orxLOG("*** END STRUCTURE LOG ***");
+
+    /* Restores debug flags */
+    orxDEBUG_SET_FLAGS(u32DebugFlags, orxDEBUG_KU32_STATIC_MASK_USER_ALL);
+
+    /* Updates result */
+    eResult = orxSTATUS_SUCCESS;
+
+    /* Deletes table */
+    orxHashTable_Delete(pstTable);
+  }
+
+#undef orx_DECLARE_STRUCTURE_INFO
+#undef orx_MAX_NAME_LENGTH
+
+  /* Done! */
+  return eResult;
+}
+
 #endif /*_orx_H_*/
-
-
 
 #ifdef __cplusplus
 }

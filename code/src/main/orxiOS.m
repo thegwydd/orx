@@ -42,6 +42,8 @@
 #define orxIOS_KZ_CONFIG_SECTION                      "iOS"
 #define orxIOS_KZ_CONFIG_ACCELEROMETER_FREQUENCY      "AccelerometerFrequency"
 
+static volatile orxU32 su32FrameCounter = 0;
+
 
 /** Main function pointer
  */
@@ -53,6 +55,23 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
 {
   /* Done! */
   return orxSTATUS_FAILURE;
+}
+
+/** Documents path retrieval
+ */
+const orxSTRING orxiOS_GetDocumentsPath()
+{
+  NSString       *poPath;
+  const orxSTRING zResult;
+
+  /* Gets documents path */
+  poPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+
+  /* Updates result */
+  zResult = (const orxSTRING)[poPath UTF8String];
+
+  /* Done! */
+  return zResult;
 }
 
 /** Orx application implementation
@@ -87,6 +106,9 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
   /* Activates window */
   [poWindow makeKeyAndVisible];
 
+  /* Inits frame counter */
+  su32FrameCounter = 0;
+
   /* Assigns main loop to a new thread */
   [NSThread detachNewThreadSelector:@selector(MainLoop) toTarget:self withObject:nil];
 }
@@ -103,34 +125,71 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
 
 - (void) applicationWillTerminate:(UIApplication *)_poApplication
 {
-  /* Sends event */
-  orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_CLOSE);
+  orxView *poView;
+
+  /* Gets view instance */
+  poView = [orxView GetInstance];
+
+  /* Checks */
+  orxASSERT(poView != nil);
+
+  /* Queues event */
+  [poView QueueEvent:orxSYSTEM_EVENT_CLOSE WithPayload:nil];
 }
 
 - (void) applicationDidEnterBackground:(UIApplication *)_poApplication
 {
-  /* Sends event */
-  if(orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_BACKGROUND) != orxSTATUS_FAILURE)
-  {
-    /* Adds render inhibiter */
-    orxEvent_AddHandler(orxEVENT_TYPE_RENDER, RenderInhibiter);
-  }
+  orxView *poView;
+  orxU32    u32CurrentFrame;
+
+  /* Gets view instance */
+  poView = [orxView GetInstance];
+
+  /* Checks */
+  orxASSERT(poView != nil);
+
+  /* Queues event */
+  [poView QueueEvent:orxSYSTEM_EVENT_BACKGROUND WithPayload:nil];
+
+  /* Adds render inhibiter */
+  orxEvent_AddHandler(orxEVENT_TYPE_RENDER, RenderInhibiter);
+
+  /* Gets current frame */
+  u32CurrentFrame = su32FrameCounter;
+
+  /* Spins until end of frame */
+  while(u32CurrentFrame == su32FrameCounter);
 }
 
 - (void) applicationWillEnterForeground:(UIApplication *)_poApplication
 {
-  /* Sends event */
-  if(orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_FOREGROUND) != orxSTATUS_FAILURE)
-  {
-    /* Removes render inhibiter */
-    orxEvent_RemoveHandler(orxEVENT_TYPE_RENDER, RenderInhibiter);
-  }
+  orxView *poView;
+
+  /* Gets view instance */
+  poView = [orxView GetInstance];
+
+  /* Checks */
+  orxASSERT(poView != nil);
+
+  /* Queues event */
+  [poView QueueEvent:orxSYSTEM_EVENT_FOREGROUND WithPayload:nil];
+
+  /* Removes render inhibiter */
+  orxEvent_RemoveHandler(orxEVENT_TYPE_RENDER, RenderInhibiter);
 }
 
 - (void) applicationWillResignActive:(UIApplication *)_poApplication
 {
-  /* Sends event */
-  orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_FOCUS_LOST);
+  orxView *poView;
+
+  /* Gets view instance */
+  poView = [orxView GetInstance];
+
+  /* Checks */
+  orxASSERT(poView != nil);
+
+  /* Queues event */
+  [poView QueueEvent:orxSYSTEM_EVENT_FOCUS_LOST WithPayload:nil];
 }
 
 - (void) applicationDidBecomeActive:(UIApplication *)_poApplication
@@ -145,8 +204,16 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
   }
   else
   {
-    /* Sends event */
-    orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_FOCUS_GAINED);
+    orxView *poView;
+
+    /* Gets view instance */
+    poView = [orxView GetInstance];
+
+    /* Checks */
+    orxASSERT(poView != nil);
+
+    /* Queues event */
+    [poView QueueEvent:orxSYSTEM_EVENT_FOCUS_GAINED WithPayload:nil];
   }
 }
 
@@ -211,6 +278,9 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
       /* Pops config section */
       orxConfig_PopSection();
 
+      /* Clears payload */
+      orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+
       /* Main loop */
       for(bStop = orxFALSE;
           bStop == orxFALSE;
@@ -234,7 +304,8 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
         orxEVENT_SEND(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_GAME_LOOP_STOP, orxNULL, orxNULL, &stPayload);
 
         /* Updates frame counter */
-        stPayload.u32FrameCounter++;
+        su32FrameCounter++;
+        stPayload.u32FrameCounter = su32FrameCounter;
 
         /* Releases memory pool */
         [poPool release];
@@ -247,9 +318,6 @@ static orxSTATUS orxFASTCALL RenderInhibiter(const orxEVENT *_pstEvent)
     /* Exits from engine */
     orxModule_Exit(orxMODULE_ID_MAIN);
   }
-
-  /* Exits from all modules */
-  orxModule_ExitAll();
 
   /* Releases main pool */
   [poMainPool release];

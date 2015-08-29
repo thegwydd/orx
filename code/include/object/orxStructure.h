@@ -205,6 +205,50 @@ static orxINLINE orxSTRUCTURE *_orxStructure_GetPointer(const void *_pStructure,
   return pstResult;
 }
 
+/** Gets structure ID string
+ * @param[in]   _eID                       Concerned ID
+ * @return      Corresponding literal string
+ */
+static orxINLINE const orxSTRING orxStructure_GetIDString(orxSTRUCTURE_ID _eID)
+{
+  const orxSTRING zResult;
+
+#define orxSTRUCTURE_DECLARE_ID_ENTRY(ID)    case orxSTRUCTURE_ID_##ID: zResult = #ID; break
+
+  /* Depending on ID */
+  switch(_eID)
+  {
+    orxSTRUCTURE_DECLARE_ID_ENTRY(ANIMPOINTER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(BODY);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(CLOCK);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(FRAME);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(FXPOINTER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(GRAPHIC);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(SHADERPOINTER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(SOUNDPOINTER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(SPAWNER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(TIMELINE);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(ANIM);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(ANIMSET);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(CAMERA);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(FONT);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(FX);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(OBJECT);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(SHADER);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(SOUND);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(TEXT);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(TEXTURE);
+    orxSTRUCTURE_DECLARE_ID_ENTRY(VIEWPORT);
+
+    default: zResult = "INVALID STRUCTURE ID"; break;
+  }
+
+#undef orxSTRUCTURE_DECLARE_ID_ENTRY
+
+  /* Done! */
+  return zResult;
+}
+
 
 /** Structure module setup
  */
@@ -229,7 +273,7 @@ extern orxDLLAPI void orxFASTCALL                       orxStructure_Exit();
  * @param[in]   _pfnUpdate      Structure update function
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-extern orxDLLAPI orxSTATUS  orxFASTCALL                 orxStructure_Register(orxSTRUCTURE_ID _eStructureID, orxSTRUCTURE_STORAGE_TYPE _eStorageType, orxMEMORY_TYPE _eMemoryType, orxU32 _u32Size, orxU32 _u32BankSize, const orxSTRUCTURE_UPDATE_FUNCTION _pfnUpdate);
+extern orxDLLAPI orxSTATUS orxFASTCALL                  orxStructure_Register(orxSTRUCTURE_ID _eStructureID, orxSTRUCTURE_STORAGE_TYPE _eStorageType, orxMEMORY_TYPE _eMemoryType, orxU32 _u32Size, orxU32 _u32BankSize, const orxSTRUCTURE_UPDATE_FUNCTION _pfnUpdate);
 
 /** Unregisters a given ID
  * @param[in]   _eStructureID   Concerned structure ID
@@ -261,15 +305,15 @@ extern orxDLLAPI orxSTRUCTURE_STORAGE_TYPE orxFASTCALL  orxStructure_GetStorageT
  * @param[in]   _eStructureID   Concerned structure ID
  * @return      orxU32 / orxU32_UNDEFINED
  */
-extern orxDLLAPI orxU32     orxFASTCALL                 orxStructure_GetCounter(orxSTRUCTURE_ID _eStructureID);
+extern orxDLLAPI orxU32 orxFASTCALL                     orxStructure_GetCounter(orxSTRUCTURE_ID _eStructureID);
 
 /** Updates structure if update function was registered for the structure type
- * @param[in]   _pStructure    Concerned structure
+ * @param[in]   _pStructure     Concerned structure
  * @param[in]   _phCaller       Caller structure
  * @param[in]   _pstClockInfo   Update associated clock info
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-extern orxDLLAPI orxSTATUS  orxFASTCALL                 orxStructure_Update(void *_pStructure, const void *_phCaller, const orxCLOCK_INFO *_pstClockInfo);
+extern orxDLLAPI orxSTATUS orxFASTCALL                  orxStructure_Update(void *_pStructure, const void *_phCaller, const orxCLOCK_INFO *_pstClockInfo);
 
 
 /** *** Structure storage accessors *** */
@@ -341,7 +385,7 @@ extern orxDLLAPI orxSTRUCTURE *orxFASTCALL              orxStructure_GetNext(con
  * @param[in]   _phParent       Structure to set as parent
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-extern orxDLLAPI orxSTATUS  orxFASTCALL                 orxStructure_SetParent(void *_pStructure, void *_phParent);
+extern orxDLLAPI orxSTATUS orxFASTCALL                  orxStructure_SetParent(void *_pStructure, void *_phParent);
 
 
 /** *** Inlined structure accessors *** */

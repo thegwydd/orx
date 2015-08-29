@@ -193,7 +193,7 @@ struct __orxBODY_t
   orxVECTOR               vScale;                                     /**< Scale : 68 */
   orxFLOAT                fAngularVelocity;                           /**< Angular velocity : 72 */
   orxPHYSICS_BODY        *pstData;                                    /**< Physics body data : 76 */
-  const orxSTRUCTURE     *pstOwner;                                   /**< Owner structure : 80 */
+  const orxSTRING         zReference;                                 /**< Reference : 80 */
   orxU32                  u32DefFlags;                                /**< Definition flags : 84 */
   orxLINKLIST             stPartList;                                 /**< Part list : 96 */
   orxLINKLIST             stSrcJointList;                             /**< Source joint list : 108 */
@@ -438,7 +438,7 @@ orxBODY *orxFASTCALL orxBody_Create(const orxSTRUCTURE *_pstOwner, const orxBODY
     if(pstBody->pstData != orxNULL)
     {
       /* Stores owner */
-      pstBody->pstOwner = _pstOwner;
+      orxStructure_SetOwner(pstBody, pstObject);
 
       /* Stores its scale */
       orxObject_GetScale(pstObject, &(pstBody->vScale));
@@ -564,6 +564,12 @@ orxBODY *orxFASTCALL orxBody_CreateFromConfig(const orxSTRUCTURE *_pstOwner, con
         /* Sets it */
         orxBody_SetCustomGravity(pstResult, orxConfig_GetVector(orxBODY_KZ_CONFIG_CUSTOM_GRAVITY, &vGravity));
       }
+
+      /* Stores its reference key */
+      pstResult->zReference = orxConfig_GetCurrentSection();
+
+      /* Protects it */
+      orxConfig_ProtectSection(pstResult->zReference, orxTRUE);
     }
 
     /* Pops previous section */
@@ -636,6 +642,13 @@ orxSTATUS orxFASTCALL orxBody_Delete(orxBODY *_pstBody)
       orxPhysics_DeleteBody(_pstBody->pstData);
     }
 
+    /* Has reference? */
+    if(_pstBody->zReference != orxNULL)
+    {
+      /* Unprotects it */
+      orxConfig_ProtectSection(_pstBody->zReference, orxFALSE);
+    }
+
     /* Deletes structure */
     orxStructure_Delete(_pstBody);
   }
@@ -647,6 +660,25 @@ orxSTATUS orxFASTCALL orxBody_Delete(orxBODY *_pstBody)
 
   /* Done! */
   return eResult;
+}
+
+/** Gets body config name
+ * @param[in]   _pstBody        Concerned body
+ * @return      orxSTRING / orxSTRING_EMPTY
+ */
+const orxSTRING orxFASTCALL orxBody_GetName(const orxBODY *_pstBody)
+{
+  const orxSTRING zResult;
+
+  /* Checks */
+  orxASSERT(sstBody.u32Flags & orxBODY_KU32_STATIC_FLAG_READY);
+  orxASSERT(_pstBody);
+
+  /* Updates result */
+  zResult = (_pstBody->zReference != orxNULL) ? _pstBody->zReference : orxSTRING_EMPTY;
+
+  /* Done! */
+  return zResult;
 }
 
 /** Tests flags against body definition ones
@@ -707,25 +739,6 @@ orxU32 orxFASTCALL orxBody_GetDefFlags(const orxBODY *_pstBody, orxU32 _u32Mask)
 
   /* Done! */
   return u32Result;
-}
-
-/** Gets a body owner
- * @param[in]   _pstBody        Concerned body
- * @return      orxSTRUCTURE / orxNULL
- */
-orxSTRUCTURE *orxFASTCALL orxBody_GetOwner(const orxBODY *_pstBody)
-{
-  orxSTRUCTURE *pstResult;
-
-  /* Checks */
-  orxASSERT(sstBody.u32Flags & orxBODY_KU32_STATIC_FLAG_READY);
-  orxSTRUCTURE_ASSERT(_pstBody);
-
-  /* Updates result */
-  pstResult = orxSTRUCTURE(_pstBody->pstOwner);
-
-  /* Done! */
-  return pstResult;
 }
 
 /** Adds a part to body
@@ -829,7 +842,11 @@ orxBODY_PART *orxFASTCALL orxBody_AddPartFromConfig(orxBODY *_pstBody, const orx
   {
     const orxSTRING   zBodyPartType;
     orxBODY_PART_DEF  stBodyPartDef;
+    orxOBJECT        *pstOwner;
     orxBOOL           bSuccess = orxTRUE;
+
+    /* Gets owner */
+    pstOwner = orxOBJECT(orxStructure_GetOwner(_pstBody));
 
     /* Clears body part definition */
     orxMemory_Zero(&stBodyPartDef, sizeof(orxBODY_PART_DEF));
@@ -861,8 +878,8 @@ orxBODY_PART *orxFASTCALL orxBody_AddPartFromConfig(orxBODY *_pstBody, const orx
         orxVECTOR vPivot, vSize;
 
         /* Gets object size & pivot */
-        orxObject_GetSize(orxOBJECT(_pstBody->pstOwner), &vSize);
-        orxObject_GetPivot(orxOBJECT(_pstBody->pstOwner), &vPivot);
+        orxObject_GetSize(pstOwner, &vSize);
+        orxObject_GetPivot(pstOwner, &vPivot);
 
         /* Gets radius size */
         orxVector_Mulf(&vSize, &vSize, orx2F(0.5f));
@@ -890,8 +907,8 @@ orxBODY_PART *orxFASTCALL orxBody_AddPartFromConfig(orxBODY *_pstBody, const orx
         orxVECTOR vPivot, vSize;
 
         /* Gets object size & pivot */
-        orxObject_GetSize(orxOBJECT(_pstBody->pstOwner), &vSize);
-        orxObject_GetPivot(orxOBJECT(_pstBody->pstOwner), &vPivot);
+        orxObject_GetSize(pstOwner, &vSize);
+        orxObject_GetPivot(pstOwner, &vPivot);
 
         /* Inits body part def */
         orxVector_Set(&(stBodyPartDef.stAABox.stBox.vTL), -vPivot.fX, -vPivot.fY, -vPivot.fZ);
@@ -1252,7 +1269,12 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
   {
     const orxSTRING   zBodyJointType;
     orxBODY_JOINT_DEF stBodyJointDef;
+    orxOBJECT        *pstSrcOwner, *pstDstOwner;
     orxBOOL           bSuccess = orxTRUE;
+
+    /* Gets owners */
+    pstSrcOwner = orxOBJECT(orxStructure_GetOwner(_pstSrcBody));
+    pstDstOwner = orxOBJECT(orxStructure_GetOwner(_pstDstBody));
 
     /* Clears body part definition */
     orxMemory_Zero(&stBodyJointDef, sizeof(orxBODY_JOINT_DEF));
@@ -1277,7 +1299,7 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       stBodyJointDef.u32Flags                    |= orxBODY_JOINT_DEF_KU32_FLAG_REVOLUTE;
 
       /* Stores default rotation */
-      stBodyJointDef.stRevolute.fDefaultRotation  = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstDstBody))) - orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstSrcBody)));
+      stBodyJointDef.stRevolute.fDefaultRotation  = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(pstDstOwner) - orxObject_GetWorldRotation(pstSrcOwner);
 
       /* Has rotation limits? */
       if((orxConfig_HasValue(orxBODY_KZ_CONFIG_MIN_ROTATION) != orxFALSE)
@@ -1310,7 +1332,7 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       stBodyJointDef.u32Flags                    |= orxBODY_JOINT_DEF_KU32_FLAG_PRISMATIC;
 
       /* Stores default rotation */
-      stBodyJointDef.stPrismatic.fDefaultRotation = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstDstBody))) - orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstSrcBody)));
+      stBodyJointDef.stPrismatic.fDefaultRotation = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(pstDstOwner) - orxObject_GetWorldRotation(pstSrcOwner);
 
       /* Stores translation axis */
       orxConfig_GetVector(orxBODY_KZ_CONFIG_TRANSLATION_AXIS, &(stBodyJointDef.stPrismatic.vTranslationAxis));
@@ -1348,7 +1370,7 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       stBodyJointDef.u32Flags |= orxBODY_JOINT_DEF_KU32_FLAG_SPRING;
 
       /* Stores length */
-      stBodyJointDef.stSpring.fLength     = orxConfig_HasValue(orxBODY_KZ_CONFIG_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstSrcBody)), &vSrcPos), orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstDstBody)), &vDstPos));;
+      stBodyJointDef.stSpring.fLength     = orxConfig_HasValue(orxBODY_KZ_CONFIG_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(pstSrcOwner, &vSrcPos), orxObject_GetWorldPosition(pstDstOwner, &vDstPos));;
 
       /* Stores frequency */
       stBodyJointDef.stSpring.fFrequency  = orxConfig_GetFloat(orxBODY_KZ_CONFIG_FREQUENCY);
@@ -1365,7 +1387,7 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       stBodyJointDef.u32Flags |= orxBODY_JOINT_DEF_KU32_FLAG_ROPE;
 
       /* Stores length */
-      stBodyJointDef.stRope.fLength = orxConfig_HasValue(orxBODY_KZ_CONFIG_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstSrcBody)), &vSrcPos), orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstDstBody)), &vDstPos));;
+      stBodyJointDef.stRope.fLength = orxConfig_HasValue(orxBODY_KZ_CONFIG_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(pstSrcOwner, &vSrcPos), orxObject_GetWorldPosition(pstDstOwner, &vDstPos));;
     }
     /* Pulley? */
     else if(orxString_ICompare(zBodyJointType, orxBODY_KZ_TYPE_PULLEY) == 0)
@@ -1383,8 +1405,8 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       orxConfig_GetVector(orxBODY_KZ_CONFIG_CHILD_GROUND_ANCHOR, &(stBodyJointDef.stPulley.vDstGroundAnchor));
 
       /* Stores lengths */
-      stBodyJointDef.stPulley.fSrcLength    = orxConfig_HasValue(orxBODY_KZ_CONFIG_PARENT_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_PARENT_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstSrcBody)), &vPos), &(stBodyJointDef.stPulley.vSrcGroundAnchor));
-      stBodyJointDef.stPulley.fDstLength    = orxConfig_HasValue(orxBODY_KZ_CONFIG_CHILD_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_CHILD_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(orxOBJECT(orxBody_GetOwner(_pstDstBody)), &vPos), &(stBodyJointDef.stPulley.vDstGroundAnchor));
+      stBodyJointDef.stPulley.fSrcLength    = orxConfig_HasValue(orxBODY_KZ_CONFIG_PARENT_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_PARENT_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(pstSrcOwner, &vPos), &(stBodyJointDef.stPulley.vSrcGroundAnchor));
+      stBodyJointDef.stPulley.fDstLength    = orxConfig_HasValue(orxBODY_KZ_CONFIG_CHILD_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_CHILD_LENGTH) : orxVector_GetDistance(orxObject_GetWorldPosition(pstDstOwner, &vPos), &(stBodyJointDef.stPulley.vDstGroundAnchor));
       stBodyJointDef.stPulley.fMaxSrcLength = orxConfig_HasValue(orxBODY_KZ_CONFIG_MAX_PARENT_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_MAX_PARENT_LENGTH) : stBodyJointDef.stPulley.fSrcLength + stBodyJointDef.stPulley.fLengthRatio * stBodyJointDef.stPulley.fDstLength;
       stBodyJointDef.stPulley.fMaxDstLength = orxConfig_HasValue(orxBODY_KZ_CONFIG_MAX_CHILD_LENGTH) ? orxConfig_GetFloat(orxBODY_KZ_CONFIG_MAX_CHILD_LENGTH) : stBodyJointDef.stPulley.fSrcLength + stBodyJointDef.stPulley.fDstLength;
     }
@@ -1428,7 +1450,7 @@ orxBODY_JOINT *orxFASTCALL orxBody_AddJointFromConfig(orxBODY *_pstSrcBody, orxB
       stBodyJointDef.u32Flags                |= orxBODY_JOINT_DEF_KU32_FLAG_WELD;
 
       /* Stores default rotation */
-      stBodyJointDef.stWeld.fDefaultRotation  = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstDstBody))) - orxObject_GetWorldRotation(orxOBJECT(orxBody_GetOwner(_pstSrcBody)));
+      stBodyJointDef.stWeld.fDefaultRotation  = orxConfig_HasValue(orxBODY_KZ_CONFIG_ROTATION) ? orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxBODY_KZ_CONFIG_ROTATION) : orxObject_GetWorldRotation(pstDstOwner) - orxObject_GetWorldRotation(pstSrcOwner);
     }
     /* Friction? */
     else if(orxString_ICompare(zBodyJointType, orxBODY_KZ_TYPE_FRICTION) == 0)
@@ -1879,7 +1901,7 @@ orxSTATUS orxFASTCALL orxBody_SetScale(orxBODY *_pstBody, const orxVECTOR *_pvSc
         else
         {
           /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body part with no config reference is unsupported. Please scale only bodies that contain parts created from config.", (_pstBody->pstOwner != orxNULL) ? orxObject_GetName(orxOBJECT(_pstBody->pstOwner)) : "UNDEFINED");
+          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body part with no config reference is unsupported. Please scale only bodies that contain parts created from config.", (orxStructure_GetOwner(_pstBody) != orxNULL) ? orxObject_GetName(orxOBJECT(orxStructure_GetOwner(_pstBody))) : "UNDEFINED");
         }
       }
 
@@ -1909,7 +1931,7 @@ orxSTATUS orxFASTCALL orxBody_SetScale(orxBODY *_pstBody, const orxVECTOR *_pvSc
         else
         {
           /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body joint with no config reference is unsupported. Please scale only bodies that contain joints created from config.", (_pstBody->pstOwner != orxNULL) ? orxObject_GetName(orxOBJECT(_pstBody->pstOwner)) : "UNDEFINED");
+          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body joint with no config reference is unsupported. Please scale only bodies that contain joints created from config.", (orxStructure_GetOwner(_pstBody) != orxNULL) ? orxObject_GetName(orxOBJECT(orxStructure_GetOwner(_pstBody))) : "UNDEFINED");
         }
       }
 
@@ -1939,7 +1961,7 @@ orxSTATUS orxFASTCALL orxBody_SetScale(orxBODY *_pstBody, const orxVECTOR *_pvSc
         else
         {
           /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body joint with no config reference is unsupported. Please scale only bodies that contain joints created from config.", (_pstBody->pstOwner != orxNULL) ? orxObject_GetName(orxOBJECT(_pstBody->pstOwner)) : "UNDEFINED");
+          orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "[%s]: Scaling of body joint with no config reference is unsupported. Please scale only bodies that contain joints created from config.", (orxStructure_GetOwner(_pstBody) != orxNULL) ? orxObject_GetName(orxOBJECT(orxStructure_GetOwner(_pstBody))) : "UNDEFINED");
         }
       }
     }

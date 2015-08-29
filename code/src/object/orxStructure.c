@@ -136,6 +136,7 @@ void orxFASTCALL orxStructure_Setup()
   orxModule_AddDependency(orxMODULE_ID_STRUCTURE, orxMODULE_ID_MEMORY);
   orxModule_AddDependency(orxMODULE_ID_STRUCTURE, orxMODULE_ID_BANK);
   orxModule_AddDependency(orxMODULE_ID_STRUCTURE, orxMODULE_ID_PROFILER);
+  orxModule_AddDependency(orxMODULE_ID_STRUCTURE, orxMODULE_ID_CONFIG);
 
   /* Done! */
   return;
@@ -666,7 +667,7 @@ orxSTATUS orxFASTCALL orxStructure_Update(void *_pStructure, const void *_pCalle
 
   /* Gets structure ID */
   u32ID = orxStructure_GetID(_pStructure);
-  
+
   /* Is structure registered? */
   if(sstStructure.astInfo[u32ID].u32Size != 0)
   {

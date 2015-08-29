@@ -221,6 +221,7 @@ struct __orxBITMAP_t
   orxU32                    u32DataSize;
   orxRGBA                   stColor;
   const orxSTRING           zLocation;
+  orxU32                    u32FilenameID;
   orxU32                    u32Flags;
 };
 
@@ -466,35 +467,29 @@ static orxView *spoInstance;
 
 - (void) NotifyAcceleration:(UIAcceleration *)_poAcceleration
 {
-  @synchronized(self)
+  /* Is initialized? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
   {
-    /* Is initialized? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+    /* Not overflowing? */
+    if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
     {
-      /* Not overflowing? */
-      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-      {
-        orxSYSTEM_EVENT_PAYLOAD *pstPayload;
+      orxSYSTEM_EVENT_PAYLOAD stPayload;
 
-        /* Gets payload */
-        pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+      /* Inits payload */
+      orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+      stPayload.stTouch.fPressure = orxFLOAT_1;
 
-        /* Inits it */
-        orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-        pstPayload->stTouch.fPressure = orxFLOAT_1;
+      /* Updates it */
+      stPayload.stAccelerometer.dTime = _poAcceleration.timestamp + sstDisplay.dTouchTimeCorrection;
+      orxVector_Set(&(stPayload.stAccelerometer.vAcceleration), orx2F(_poAcceleration.x), orx2F(-_poAcceleration.y), orx2F(-_poAcceleration.z));
 
-        /* Updates it */
-        pstPayload->stAccelerometer.dTime = _poAcceleration.timestamp + sstDisplay.dTouchTimeCorrection;
-        orxVector_Set(&(pstPayload->stAccelerometer.vAcceleration), orx2F(_poAcceleration.x), orx2F(-_poAcceleration.y), orx2F(-_poAcceleration.z));
-
-        /* Stores event info */
-        sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_ACCELERATE;
-      }
-      else
-      {
-        /* Logs message */
-        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping accelerometer event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-      }
+      /* Queues event */
+      [self QueueEvent:orxSYSTEM_EVENT_ACCELERATE WithPayload:&stPayload];
+    }
+    else
+    {
+      /* Logs message */
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping accelerometer event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
     }
   }
 }
@@ -918,56 +913,74 @@ static orxView *spoInstance;
   return [zExtensionList containsObject:_zExtension];
 }
 
-- (void) touchesBegan:(NSSet *)_poTouchList withEvent:(UIEvent *)_poEvent
+- (void) QueueEvent:(orxENUM)_ID WithPayload:(orxSYSTEM_EVENT_PAYLOAD *)_pstPayload
 {
   @synchronized(self)
   {
-    /* Is initialized? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+    orxSYSTEM_EVENT_PAYLOAD *pstPayload;
+
+    /* Gets stored payload */
+    pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+
+    /* Inits it */
+    if(_pstPayload != nil)
     {
-      /* For all new touches */
-      for(UITouch *poTouch in _poTouchList)
+      orxMemory_Copy(pstPayload, _pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+    }
+    else
+    {
+      orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+    }
+
+    /* Stores event info */
+    sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = _ID;
+  }
+}
+
+- (void) touchesBegan:(NSSet *)_poTouchList withEvent:(UIEvent *)_poEvent
+{
+  /* Is initialized? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+  {
+    /* For all new touches */
+    for(UITouch *poTouch in _poTouchList)
+    {
+      /* Not overflowing? */
+      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
       {
-        /* Not overflowing? */
-        if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-        {
-          CGPoint                   vViewPosition;
-          orxSYSTEM_EVENT_PAYLOAD  *pstPayload;
-          orxU32                    u32ID;
+        CGPoint                 vViewPosition;
+        orxSYSTEM_EVENT_PAYLOAD stPayload;
+        orxU32                  u32ID;
 
-          /* Finds first empty slot */
-          for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != nil); u32ID++);
+        /* Finds first empty slot */
+        for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != nil); u32ID++);
 
-          /* Checks */
-          orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
+        /* Checks */
+        orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
 
-          /* Stores touch */
-          sstDisplay.astTouchInfoList[u32ID].poTouch = poTouch;
+        /* Stores touch */
+        sstDisplay.astTouchInfoList[u32ID].poTouch = poTouch;
 
-          /* Gets its position inside view */
-          vViewPosition = [poTouch locationInView:self];
+        /* Gets its position inside view */
+        vViewPosition = [poTouch locationInView:self];
 
-          /* Gets payload */
-          pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+        /* Inits payload */
+        orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+        stPayload.stTouch.fPressure = orxFLOAT_1;
 
-          /* Inits it */
-          orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-          pstPayload->stTouch.fPressure = orxFLOAT_1;
+        /* Updates it */
+        stPayload.stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
+        stPayload.stTouch.u32ID = u32ID;
+        stPayload.stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
+        stPayload.stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
 
-          /* Updates it */
-          pstPayload->stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
-          pstPayload->stTouch.u32ID = u32ID;
-          pstPayload->stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
-          pstPayload->stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
-
-          /* Stores event info */
-          sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_TOUCH_BEGIN;
-        }
-        else
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch begin event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-        }
+        /* Queues event */
+        [self QueueEvent:orxSYSTEM_EVENT_TOUCH_BEGIN WithPayload:&stPayload];
+      }
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch begin event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
       }
     }
   }
@@ -978,51 +991,45 @@ static orxView *spoInstance;
 
 - (void) touchesMoved:(NSSet *)_poTouchList withEvent:(UIEvent *)_poEvent
 {
-  @synchronized(self)
+  /* Is initialized? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
   {
-    /* Is initialized? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+    /* For all moved touches */
+    for(UITouch *poTouch in _poTouchList)
     {
-      /* For all moved touches */
-      for(UITouch *poTouch in _poTouchList)
+      /* Not overflowing? */
+      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
       {
-        /* Not overflowing? */
-        if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-        {
-          CGPoint                   vViewPosition;
-          orxSYSTEM_EVENT_PAYLOAD  *pstPayload;
-          orxU32                    u32ID;
+        CGPoint                 vViewPosition;
+        orxSYSTEM_EVENT_PAYLOAD stPayload;
+        orxU32                  u32ID;
 
-          /* Finds corresponding slot */
-          for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
+        /* Finds corresponding slot */
+        for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
 
-          /* Checks */
-          orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
+        /* Checks */
+        orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
 
-          /* Gets its position inside view */
-          vViewPosition = [poTouch locationInView:self];
+        /* Gets its position inside view */
+        vViewPosition = [poTouch locationInView:self];
 
-          /* Gets payload */
-          pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+        /* Inits payload */
+        orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+        stPayload.stTouch.fPressure = orxFLOAT_1;
 
-          /* Inits it */
-          orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-          pstPayload->stTouch.fPressure = orxFLOAT_1;
+        /* Updates it */
+        stPayload.stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
+        stPayload.stTouch.u32ID = u32ID;
+        stPayload.stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
+        stPayload.stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
 
-          /* Updates it */
-          pstPayload->stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
-          pstPayload->stTouch.u32ID = u32ID;
-          pstPayload->stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
-          pstPayload->stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
-
-          /* Stores event info */
-          sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_TOUCH_MOVE;
-        }
-        else
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch move event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-        }
+        /* Queues event */
+        [self QueueEvent:orxSYSTEM_EVENT_TOUCH_MOVE WithPayload:&stPayload];
+      }
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch move event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
       }
     }
   }
@@ -1033,54 +1040,48 @@ static orxView *spoInstance;
 
 - (void) touchesEnded:(NSSet *)_poTouchList withEvent:(UIEvent *)_poEvent
 {
-  @synchronized(self)
+  /* Is initialized? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
   {
-    /* Is initialized? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+    /* For all ended touches */
+    for(UITouch *poTouch in _poTouchList)
     {
-      /* For all ended touches */
-      for(UITouch *poTouch in _poTouchList)
+      /* Not overflowing? */
+      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
       {
-        /* Not overflowing? */
-        if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-        {
-          CGPoint                   vViewPosition;
-          orxSYSTEM_EVENT_PAYLOAD  *pstPayload;
-          orxU32                    u32ID;
+        CGPoint                 vViewPosition;
+        orxSYSTEM_EVENT_PAYLOAD stPayload;
+        orxU32                  u32ID;
 
-          /* Finds corresponding slot */
-          for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
+        /* Finds corresponding slot */
+        for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
 
-          /* Checks */
-          orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
+        /* Checks */
+        orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
 
-          /* Removes touch */
-          sstDisplay.astTouchInfoList[u32ID].poTouch = nil;
+        /* Removes touch */
+        sstDisplay.astTouchInfoList[u32ID].poTouch = nil;
 
-          /* Gets its position inside view */
-          vViewPosition = [poTouch locationInView:self];
+        /* Gets its position inside view */
+        vViewPosition = [poTouch locationInView:self];
 
-          /* Gets payload */
-          pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+        /* Inits payload */
+        orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+        stPayload.stTouch.fPressure = orxFLOAT_0;
 
-          /* Inits it */
-          orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-          pstPayload->stTouch.fPressure = orxFLOAT_0;
+        /* Updates it */
+        stPayload.stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
+        stPayload.stTouch.u32ID = u32ID;
+        stPayload.stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
+        stPayload.stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
 
-          /* Updates it */
-          pstPayload->stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
-          pstPayload->stTouch.u32ID = u32ID;
-          pstPayload->stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
-          pstPayload->stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
-
-          /* Stores event info */
-          sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_TOUCH_END;
-        }
-        else
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch end event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-        }
+        /* Queues event */
+        [self QueueEvent:orxSYSTEM_EVENT_TOUCH_END WithPayload:&stPayload];
+      }
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch end event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
       }
     }
   }
@@ -1091,54 +1092,48 @@ static orxView *spoInstance;
 
 - (void) touchesCancelled:(NSSet *)_poTouchList withEvent:(UIEvent *)_poEvent
 {
-  @synchronized(self)
+  /* Is initialized? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
   {
-    /* Is initialized? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+    /* For all cancelled touches */
+    for(UITouch *poTouch in _poTouchList)
     {
-      /* For all cancelled touches */
-      for(UITouch *poTouch in _poTouchList)
+      /* Not overflowing? */
+      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
       {
-        /* Not overflowing? */
-        if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-        {
-          CGPoint                   vViewPosition;
-          orxSYSTEM_EVENT_PAYLOAD  *pstPayload;
-          orxU32                    u32ID;
+        CGPoint                 vViewPosition;
+        orxSYSTEM_EVENT_PAYLOAD stPayload;
+        orxU32                  u32ID;
 
-          /* Finds corresponding slot */
-          for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
+        /* Finds corresponding slot */
+        for(u32ID = 0; (u32ID < orxDISPLAY_KU32_TOUCH_NUMBER) && (sstDisplay.astTouchInfoList[u32ID].poTouch != poTouch); u32ID++);
 
-          /* Checks */
-          orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
+        /* Checks */
+        orxASSERT(u32ID < orxDISPLAY_KU32_TOUCH_NUMBER);
 
-          /* Removes touch */
-          sstDisplay.astTouchInfoList[u32ID].poTouch = nil;
+        /* Removes touch */
+        sstDisplay.astTouchInfoList[u32ID].poTouch = nil;
 
-          /* Gets its position inside view */
-          vViewPosition = [poTouch locationInView:self];
+        /* Gets its position inside view */
+        vViewPosition = [poTouch locationInView:self];
 
-          /* Gets payload */
-          pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
+        /* Inits payload */
+        orxMemory_Zero(&stPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
+        stPayload.stTouch.fPressure = orxFLOAT_0;
 
-          /* Inits it */
-          orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-          pstPayload->stTouch.fPressure = orxFLOAT_0;
+        /* Updates it */
+        stPayload.stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
+        stPayload.stTouch.u32ID = u32ID;
+        stPayload.stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
+        stPayload.stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
 
-          /* Updates it */
-          pstPayload->stTouch.dTime = poTouch.timestamp + sstDisplay.dTouchTimeCorrection;
-          pstPayload->stTouch.u32ID = u32ID;
-          pstPayload->stTouch.fX    = orx2F(self.contentScaleFactor * vViewPosition.x);
-          pstPayload->stTouch.fY    = orx2F(self.contentScaleFactor * vViewPosition.y);
-
-          /* Stores event info */
-          sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_TOUCH_END;
-        }
-        else
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch cancel event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-        }
+        /* Queues event */
+        [self QueueEvent:orxSYSTEM_EVENT_TOUCH_END WithPayload:&stPayload];
+      }
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping touch cancel event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
       }
     }
   }
@@ -1154,30 +1149,19 @@ static orxView *spoInstance;
   /* Shake? */
   if(_eMotion == UIEventSubtypeMotionShake)
   {
-    @synchronized(self)
+    /* Is initialized? */
+    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
     {
-      /* Is initialized? */
-      if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_READY))
+      /* Not overflowing? */
+      if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
       {
-        /* Not overflowing? */
-        if(sstDisplay.u32EventInfoNumber < orxDISPLAY_KU32_EVENT_INFO_NUMBER)
-        {
-          orxSYSTEM_EVENT_PAYLOAD *pstPayload;
-
-          /* Gets payload */
-          pstPayload = &(sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber].stPayload);
-
-          /* Inits it */
-          orxMemory_Zero(pstPayload, sizeof(orxSYSTEM_EVENT_PAYLOAD));
-
-          /* Stores event info */
-          sstDisplay.astEventInfoList[sstDisplay.u32EventInfoNumber++].eID = orxSYSTEM_EVENT_MOTION_SHAKE;
-        }
-        else
-        {
-          /* Logs message */
-          orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping motion event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
-        }
+        /* Queues event */
+        [self QueueEvent:orxSYSTEM_EVENT_MOTION_SHAKE WithPayload:nil];
+      }
+      else
+      {
+        /* Logs message */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Too many touch/accelerometer events received this frame (limit is %d), dropping motion event.", orxDISPLAY_KU32_EVENT_INFO_NUMBER);
       }
     }
   }
@@ -1505,8 +1489,9 @@ static orxSTATUS orxFASTCALL orxDisplay_iOS_DecompressBitmapCallback(void *_pCon
   }
 
   /* Inits payload */
-  stPayload.stBitmap.zLocation  = pstInfo->pstBitmap->zLocation;
-  stPayload.stBitmap.u32ID      = (orxU32)pstInfo->pstBitmap->uiTexture;
+  stPayload.stBitmap.zLocation      = pstInfo->pstBitmap->zLocation;
+  stPayload.stBitmap.u32FilenameID  = pstInfo->pstBitmap->u32FilenameID;
+  stPayload.stBitmap.u32ID          = (orxU32)pstInfo->pstBitmap->uiTexture;
 
   /* Sends event */
   orxEVENT_SEND(orxEVENT_TYPE_DISPLAY, orxDISPLAY_EVENT_LOAD_BITMAP, pstInfo->pstBitmap, orxNULL, &stPayload);
@@ -2999,6 +2984,7 @@ orxBITMAP *orxFASTCALL orxDisplay_iOS_CreateBitmap(orxU32 _u32Width, orxU32 _u32
     pstBitmap->u32DataSize    = pstBitmap->u32RealWidth * pstBitmap->u32RealHeight * 4 * sizeof(orxU8);
     pstBitmap->stColor        = orx2RGBA(0xFF, 0xFF, 0xFF, 0xFF);
     pstBitmap->zLocation      = orxSTRING_EMPTY;
+    pstBitmap->u32FilenameID  = 0;
     pstBitmap->u32Flags       = orxDISPLAY_KU32_BITMAP_FLAG_NONE;
     orxVector_Copy(&(pstBitmap->stClip.vTL), &orxVECTOR_0);
     orxVector_Set(&(pstBitmap->stClip.vBR), pstBitmap->fWidth, pstBitmap->fHeight, orxFLOAT_0);
@@ -3033,18 +3019,13 @@ orxBITMAP *orxFASTCALL orxDisplay_iOS_CreateBitmap(orxU32 _u32Width, orxU32 _u32
 
 orxSTATUS orxFASTCALL orxDisplay_iOS_ClearBitmap(orxBITMAP *_pstBitmap, orxRGBA _stColor)
 {
-  orxBITMAP  *pstBackupBitmap;
-  orxSTATUS   eResult = orxSTATUS_SUCCESS;
+  orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
   orxASSERT((sstDisplay.u32Flags & orxDISPLAY_KU32_STATIC_FLAG_READY) == orxDISPLAY_KU32_STATIC_FLAG_READY);
-  orxASSERT(_pstBitmap != orxNULL);
 
-  /* Backups current destination */
-  pstBackupBitmap = sstDisplay.pstDestinationBitmap;
-
-  /* Sets new destination bitmap */
-  if(orxDisplay_SetDestinationBitmaps(&_pstBitmap, 1) != orxSTATUS_FAILURE)
+  /* Clears current destinations? */
+  if(_pstBitmap == orxNULL)
   {
     /* Different clear color? */
     if(_stColor.u32RGBA != sstDisplay.stLastColor.u32RGBA)
@@ -3060,50 +3041,76 @@ orxSTATUS orxFASTCALL orxDisplay_iOS_ClearBitmap(orxBITMAP *_pstBitmap, orxRGBA 
     /* Clears the color buffer with given color */
     glClear(GL_COLOR_BUFFER_BIT);
     glASSERT();
-
-    /* Is screen and has depth buffer? */
-    if((_pstBitmap == sstDisplay.pstScreen) && (orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_DEPTHBUFFER)))
-    {
-      /* Clears depth buffer */
-      glClear(GL_DEPTH_BUFFER_BIT);
-      glASSERT();
-    }
-
-    /* Restores previous destination */
-    orxDisplay_SetDestinationBitmaps(&pstBackupBitmap, 1);
   }
-  /* Not screen? */
-  else if(_pstBitmap != sstDisplay.pstScreen)
+  else
   {
-    orxRGBA *astBuffer, *pstPixel;
+    orxBITMAP *pstBackupBitmap;
 
-    /* Allocates buffer */
-    astBuffer = (orxRGBA *)orxMemory_Allocate(_pstBitmap->u32RealWidth * _pstBitmap->u32RealHeight * sizeof(orxRGBA), orxMEMORY_TYPE_MAIN);
+    /* Backups current destination */
+    pstBackupBitmap = sstDisplay.pstDestinationBitmap;
 
-    /* Checks */
-    orxASSERT(astBuffer != orxNULL);
-
-    /* For all pixels */
-    for(pstPixel = astBuffer; pstPixel < astBuffer + (_pstBitmap->u32RealWidth * _pstBitmap->u32RealHeight); pstPixel++)
+    /* Sets new destination bitmap */
+    if(orxDisplay_SetDestinationBitmaps(&_pstBitmap, 1) != orxSTATUS_FAILURE)
     {
-      /* Sets its value */
-      *pstPixel = _stColor;
+      /* Different clear color? */
+      if(_stColor.u32RGBA != sstDisplay.stLastColor.u32RGBA)
+      {
+        /* Updates it */
+        glClearColor(orxCOLOR_NORMALIZER * orxU2F(orxRGBA_R(_stColor)), orxCOLOR_NORMALIZER * orxU2F(orxRGBA_G(_stColor)), orxCOLOR_NORMALIZER * orxU2F(orxRGBA_B(_stColor)), orxCOLOR_NORMALIZER * orxU2F(orxRGBA_A(_stColor)));
+        glASSERT();
+
+        /* Stores it */
+        sstDisplay.stLastColor.u32RGBA = _stColor.u32RGBA;
+      }
+
+      /* Clears the color buffer with given color */
+      glClear(GL_COLOR_BUFFER_BIT);
+      glASSERT();
+
+      /* Is screen and has depth buffer? */
+      if((_pstBitmap == sstDisplay.pstScreen) && (orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_DEPTHBUFFER)))
+      {
+        /* Clears depth buffer */
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glASSERT();
+      }
+
+      /* Restores previous destination */
+      orxDisplay_SetDestinationBitmaps(&pstBackupBitmap, 1);
     }
+    /* Not screen? */
+    else if(_pstBitmap != sstDisplay.pstScreen)
+    {
+      orxRGBA *astBuffer, *pstPixel;
 
-    /* Binds texture */
-    glBindTexture(GL_TEXTURE_2D, _pstBitmap->uiTexture);
-    glASSERT();
+      /* Allocates buffer */
+      astBuffer = (orxRGBA *)orxMemory_Allocate(_pstBitmap->u32RealWidth * _pstBitmap->u32RealHeight * sizeof(orxRGBA), orxMEMORY_TYPE_MAIN);
 
-    /* Updates texture */
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, (GLsizei)_pstBitmap->u32RealWidth, (GLsizei)_pstBitmap->u32RealHeight, GL_RGBA, GL_UNSIGNED_BYTE, astBuffer);
-    glASSERT();
+      /* Checks */
+      orxASSERT(astBuffer != orxNULL);
 
-    /* Restores previous texture */
-    glBindTexture(GL_TEXTURE_2D, (sstDisplay.apstBoundBitmapList[sstDisplay.s32ActiveTextureUnit] != orxNULL) ? sstDisplay.apstBoundBitmapList[sstDisplay.s32ActiveTextureUnit]->uiTexture : 0);
-    glASSERT();
+      /* For all pixels */
+      for(pstPixel = astBuffer; pstPixel < astBuffer + (_pstBitmap->u32RealWidth * _pstBitmap->u32RealHeight); pstPixel++)
+      {
+        /* Sets its value */
+        *pstPixel = _stColor;
+      }
 
-    /* Frees buffer */
-    orxMemory_Free(astBuffer);
+      /* Binds texture */
+      glBindTexture(GL_TEXTURE_2D, _pstBitmap->uiTexture);
+      glASSERT();
+
+      /* Updates texture */
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, (GLsizei)_pstBitmap->u32RealWidth, (GLsizei)_pstBitmap->u32RealHeight, GL_RGBA, GL_UNSIGNED_BYTE, astBuffer);
+      glASSERT();
+
+      /* Restores previous texture */
+      glBindTexture(GL_TEXTURE_2D, (sstDisplay.apstBoundBitmapList[sstDisplay.s32ActiveTextureUnit] != orxNULL) ? sstDisplay.apstBoundBitmapList[sstDisplay.s32ActiveTextureUnit]->uiTexture : 0);
+      glASSERT();
+
+      /* Frees buffer */
+      orxMemory_Free(astBuffer);
+    }
   }
 
   /* Done! */
@@ -3816,9 +3823,10 @@ orxBITMAP *orxFASTCALL orxDisplay_iOS_LoadBitmap(const orxSTRING _zFilename)
     if(pstBitmap != orxNULL)
     {
       /* Inits it */
-      pstBitmap->bSmoothing = sstDisplay.bDefaultSmoothing;
-      pstBitmap->zLocation  = zResourceLocation;
-      pstBitmap->u32Flags   = orxDISPLAY_KU32_BITMAP_FLAG_NONE;
+      pstBitmap->bSmoothing     = sstDisplay.bDefaultSmoothing;
+      pstBitmap->zLocation      = zResourceLocation;
+      pstBitmap->u32FilenameID  = orxString_GetID(_zFilename);
+      pstBitmap->u32Flags       = orxDISPLAY_KU32_BITMAP_FLAG_NONE;
 
       /* Loads its data */
       if(orxDisplay_iOS_LoadBitmapData(pstBitmap) == orxSTATUS_FAILURE)

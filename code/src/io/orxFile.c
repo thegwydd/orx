@@ -54,6 +54,8 @@
 
 #else /* __orxWINDOWS__ */
 
+#define _FILE_OFFSET_BITS                       64
+
   #if defined(__orxANDROID__) || defined(__orxANDROID_NATIVE__)
 
     #include "main/orxAndroid.h"
@@ -75,6 +77,13 @@
 #define orxFILE_KU32_STATIC_FLAG_NONE           0x00000000  /**< No flags have been set */
 #define orxFILE_KU32_STATIC_FLAG_READY          0x00000001  /**< The module has been initialized */
 
+#ifdef __orxWINDOWS__
+#ifdef __orxX86_64__
+  #define orxFILE_CAST_HELPER                   (orxS64)
+#else /* __orxX86_64__ */
+  #define orxFILE_CAST_HELPER                   (orxS32)
+#endif /* __orxX86_64__ */
+#endif /* __orxWINDOWS__ */
 
 /** Misc
  */
@@ -90,7 +99,7 @@
 
 #elif defined(__orxIOS__)
 
-#define orxFILE_KZ_APPLICATION_FOLDER           "../Documents"
+extern const orxSTRING orxiOS_GetDocumentsPath();
 
 #endif
 
@@ -240,14 +249,12 @@ orxSTATUS orxFASTCALL orxFile_Init()
     /* Cleans static controller */
     orxMemory_Zero(&sstFile, sizeof(orxFILE_STATIC));
 
-#if defined(__orxANDROID__) || defined(__orxANDROID_NATIVE__)
+#ifdef __orxWINDOWS__
 
-    if(chdir(orxAndroid_GetInternalStoragePath()) != 0)
-    {
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_FILE, "could not chdir to %s !", orxAndroid_GetInternalStoragePath());
-    }
+    /* Increases C runtime stdio limit */
+    _setmaxstdio(2048);
 
-#endif /* __orxANDROID__ || __orxANDROID_NATIVE__ */
+#endif /* __orxWINDOWS__ */
 
     /* Updates status */
     sstFile.u32Flags |= orxFILE_KU32_STATIC_FLAG_READY;
@@ -426,7 +433,7 @@ const orxSTRING orxFASTCALL orxFile_GetApplicationSaveDirectory(const orxSTRING 
 #elif defined(__orxIOS__)
 
   /* Prints documents directory */
-  s32Index = orxString_NPrint(sstFile.acWorkDirectory, sizeof(sstFile.acWorkDirectory) - 1, "%s", orxFILE_KZ_APPLICATION_FOLDER);
+  s32Index = orxString_NPrint(sstFile.acWorkDirectory, sizeof(sstFile.acWorkDirectory) - 1, "%s", orxiOS_GetDocumentsPath());
 
 #elif defined(__orxANDROID__) || defined(__orxANDROID_NATIVE__)
 
@@ -480,7 +487,7 @@ orxSTATUS orxFASTCALL orxFile_FindFirst(const orxSTRING _zSearchPattern, orxFILE
 #ifdef __orxWINDOWS__
 
   struct _finddata_t  stData;
-  orxS32              s32Handle;
+  orxHANDLE           hHandle;
 
   /* Checks */
   orxASSERT((sstFile.u32Flags & orxFILE_KU32_STATIC_FLAG_READY) == orxFILE_KU32_STATIC_FLAG_READY);
@@ -488,10 +495,10 @@ orxSTATUS orxFASTCALL orxFile_FindFirst(const orxSTRING _zSearchPattern, orxFILE
   orxASSERT(_pstFileInfo != orxNULL);
 
   /* Opens the search */
-  s32Handle = (orxU32)_findfirst(_zSearchPattern, &stData);
+  hHandle = (orxHANDLE)_findfirst(_zSearchPattern, &stData);
 
   /* Valid? */
-  if(s32Handle >= 0)
+  if(orxFILE_CAST_HELPER hHandle > 0)
   {
     const orxSTRING zFileName;
 
@@ -532,7 +539,7 @@ orxSTATUS orxFASTCALL orxFile_FindFirst(const orxSTRING _zSearchPattern, orxFILE
     orxFile_GetInfoFromData(&stData, _pstFileInfo);
 
     /* Stores handle */
-    _pstFileInfo->hInternal = (orxHANDLE)s32Handle;
+    _pstFileInfo->hInternal = hHandle;
 
     /* Updates result */
     eResult = orxSTATUS_SUCCESS;
@@ -627,7 +634,7 @@ orxSTATUS orxFASTCALL orxFile_FindNext(orxFILE_INFO *_pstFileInfo)
   orxASSERT(_pstFileInfo != orxNULL);
 
   /* Opens the search */
-  s32FindResult = _findnext((orxS32)_pstFileInfo->hInternal, &stData);
+  s32FindResult = _findnext(orxFILE_CAST_HELPER _pstFileInfo->hInternal, &stData);
 
   /* Valid? */
   if(s32FindResult == 0)
@@ -681,10 +688,10 @@ void orxFASTCALL orxFile_FindClose(orxFILE_INFO *_pstFileInfo)
 #ifdef __orxWINDOWS__
 
   /* Has valid handle? */
-  if(((orxS32)_pstFileInfo->hInternal) > 0)
+  if(orxFILE_CAST_HELPER _pstFileInfo->hInternal > 0)
   {
     /* Closes the search */
-    _findclose((orxS32)_pstFileInfo->hInternal);
+    _findclose(orxFILE_CAST_HELPER _pstFileInfo->hInternal);
   }
 
 #else /* __orxWINDOWS__ */
@@ -1062,9 +1069,9 @@ orxS64 orxFASTCALL orxFile_Seek(orxFILE *_pstFile, orxS64 _s64Position, orxSEEK_
   if(_pstFile != orxNULL)
   {
 #if defined(__orxMSVC__) && defined(__orxX86_64__)
-    fseek((FILE *)_pstFile, (long)_s64Position, _eWhence);
+    (void)fseek((FILE *)_pstFile, (long)_s64Position, _eWhence);
 #else /* __orxMSVC__ && __orxX86_64__ */
-    fseek((FILE *)_pstFile, (size_t)_s64Position, _eWhence);
+    (void)fseek((FILE *)_pstFile, (size_t)_s64Position, _eWhence);
 #endif /* __orxMSVC__ && __orxX86_64__ */
 
     /* Updates result */
@@ -1114,8 +1121,7 @@ orxS64 orxFASTCALL orxFile_Tell(const orxFILE *_pstFile)
  */
 orxS64 orxFASTCALL orxFile_GetSize(const orxFILE *_pstFile)
 {
-  struct stat stStat;
-  orxS64      s64Result;
+  orxS64 s64Result;
 
   /* Checks */
   orxASSERT((sstFile.u32Flags & orxFILE_KU32_STATIC_FLAG_READY) == orxFILE_KU32_STATIC_FLAG_READY);
@@ -1123,17 +1129,21 @@ orxS64 orxFASTCALL orxFile_GetSize(const orxFILE *_pstFile)
   /* Valid? */
   if(_pstFile != orxNULL)
   {
-#ifdef __orxMSVC__
+#ifdef __orxWINDOWS__
+
+    struct _stat64 stStat;
 
     /* Gets file stats */
-    fstat(((FILE *)_pstFile)->_file, &stStat);
+    _fstat64(((FILE *)_pstFile)->_file, &stStat);
 
-#else /* __orxMSVC__ */
+#else /* __orxWINDOWS__ */
+
+    struct stat stStat;
 
     /* Gets file stats */
     fstat(fileno((FILE *)_pstFile), &stStat);
 
-#endif /* __orxMSVC__ */
+#endif /* __orxWINDOWS__ */
 
     /* Updates result */
     s64Result = (orxS64)stStat.st_size;

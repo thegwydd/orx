@@ -755,7 +755,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   pstBody = orxBODY(poBody->GetUserData());
 
   /* Gets owner object */
-  pstObject = orxOBJECT(orxBody_GetOwner(pstBody));
+  pstObject = orxOBJECT(orxStructure_GetOwner(pstBody));
 
   /* Gets its frame */
   pstFrame = orxOBJECT_GET_STRUCTURE(pstObject, FRAME);
@@ -865,7 +865,7 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
     pstBody = orxBODY(poBody->GetUserData());
 
     /* Gets owner object */
-    pstObject = orxOBJECT(orxBody_GetOwner(pstBody));
+    pstObject = orxOBJECT(orxStructure_GetOwner(pstBody));
 
     /* Is enabled? */
     if(orxObject_IsEnabled(pstObject) != orxFALSE)
@@ -1024,7 +1024,7 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
           }
 
           /* Sends event */
-          orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxBody_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxBody_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
+          orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxStructure_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxStructure_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
 
           break;
         }
@@ -2287,7 +2287,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyTorque(orxPHYSICS_BODY *_
   poBody = (b2Body *)_pstBody;
 
   /* Gets owner object */
-  pstObject = orxOBJECT(orxBody_GetOwner(orxBODY(poBody->GetUserData())));
+  pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
 
   /* Is enabled? */
   if((pstObject != orxNULL) && (orxObject_IsEnabled(pstObject) != orxFALSE))
@@ -2340,7 +2340,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyForce(orxPHYSICS_BODY *_p
   poBody = (b2Body *)_pstBody;
 
   /* Gets owner object */
-  pstObject = orxOBJECT(orxBody_GetOwner(orxBODY(poBody->GetUserData())));
+  pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
 
   /* Is enabled? */
   if((pstObject != orxNULL) && (orxObject_IsEnabled(pstObject) != orxFALSE))
@@ -2405,7 +2405,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyImpulse(orxPHYSICS_BODY *
   poBody = (b2Body *)_pstBody;
 
   /* Gets owner object */
-  pstObject = orxOBJECT(orxBody_GetOwner(orxBODY(poBody->GetUserData())));
+  pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
 
   /* Is enabled? */
   if((pstObject != orxNULL) && (orxObject_IsEnabled(pstObject) != orxFALSE))
@@ -2923,7 +2923,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
             {
               particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
             }
-            
+
             orxConfig_PopSection();
           }
 

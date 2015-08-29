@@ -40,62 +40,62 @@
 
 /** Module registration macro
  */
-#define orxMODULE_REGISTER(MODULE_ID, MODULE_BASENAME)  orxModule_Register(MODULE_ID, MODULE_BASENAME##_Setup, MODULE_BASENAME##_Init, MODULE_BASENAME##_Exit)
+#define orxMODULE_REGISTER(MODULE_ID, MODULE_BASENAME)  orxModule_Register(orxMODULE_ID_##MODULE_ID, #MODULE_ID, MODULE_BASENAME##_Setup, MODULE_BASENAME##_Init, MODULE_BASENAME##_Exit)
 
 
 /** Registers all engine modules
  */
-void orxFASTCALL orxModule_RegisterAll()
+static orxINLINE void orxModule_RegisterAll()
 {
   /* *** All modules registration *** */
-  orxMODULE_REGISTER(orxMODULE_ID_ANIM, orxAnim);
-  orxMODULE_REGISTER(orxMODULE_ID_ANIMPOINTER, orxAnimPointer);
-  orxMODULE_REGISTER(orxMODULE_ID_ANIMSET, orxAnimSet);
-  orxMODULE_REGISTER(orxMODULE_ID_BANK, orxBank);
-  orxMODULE_REGISTER(orxMODULE_ID_BODY, orxBody);
-  orxMODULE_REGISTER(orxMODULE_ID_PARTICLEGROUP, orxParticleGroup);
-  orxMODULE_REGISTER(orxMODULE_ID_CAMERA, orxCamera);
-  orxMODULE_REGISTER(orxMODULE_ID_CLOCK, orxClock);
-  orxMODULE_REGISTER(orxMODULE_ID_COMMAND, orxCommand);
-  orxMODULE_REGISTER(orxMODULE_ID_CONFIG, orxConfig);
-  orxMODULE_REGISTER(orxMODULE_ID_CONSOLE, orxConsole);
-  orxMODULE_REGISTER(orxMODULE_ID_DISPLAY, orxDisplay);
-  orxMODULE_REGISTER(orxMODULE_ID_EVENT, orxEvent);
-  orxMODULE_REGISTER(orxMODULE_ID_FILE, orxFile);
-  orxMODULE_REGISTER(orxMODULE_ID_FONT, orxFont);
-  orxMODULE_REGISTER(orxMODULE_ID_FPS, orxFPS);
-  orxMODULE_REGISTER(orxMODULE_ID_FRAME, orxFrame);
-  orxMODULE_REGISTER(orxMODULE_ID_FX, orxFX);
-  orxMODULE_REGISTER(orxMODULE_ID_FXPOINTER, orxFXPointer);
-  orxMODULE_REGISTER(orxMODULE_ID_GRAPHIC, orxGraphic);
-  orxMODULE_REGISTER(orxMODULE_ID_INPUT, orxInput);
-  orxMODULE_REGISTER(orxMODULE_ID_JOYSTICK, orxJoystick);
-  orxMODULE_REGISTER(orxMODULE_ID_KEYBOARD, orxKeyboard);
-  orxMODULE_REGISTER(orxMODULE_ID_LOCALE, orxLocale);
-  orxMODULE_REGISTER(orxMODULE_ID_MEMORY, orxMemory);
-  orxMODULE_REGISTER(orxMODULE_ID_MOUSE, orxMouse);
-  orxMODULE_REGISTER(orxMODULE_ID_OBJECT, orxObject);
-  orxMODULE_REGISTER(orxMODULE_ID_PARAM, orxParam);
-  orxMODULE_REGISTER(orxMODULE_ID_PHYSICS, orxPhysics);
-  orxMODULE_REGISTER(orxMODULE_ID_PLUGIN, orxPlugin);
-  orxMODULE_REGISTER(orxMODULE_ID_PROFILER, orxProfiler);
-  orxMODULE_REGISTER(orxMODULE_ID_RENDER, orxRender);
-  orxMODULE_REGISTER(orxMODULE_ID_RESOURCE, orxResource);
-  orxMODULE_REGISTER(orxMODULE_ID_SCREENSHOT, orxScreenshot);
-  orxMODULE_REGISTER(orxMODULE_ID_SHADER, orxShader);
-  orxMODULE_REGISTER(orxMODULE_ID_SHADERPOINTER, orxShaderPointer);
-  orxMODULE_REGISTER(orxMODULE_ID_SOUND, orxSound);
-  orxMODULE_REGISTER(orxMODULE_ID_SOUNDPOINTER, orxSoundPointer);
-  orxMODULE_REGISTER(orxMODULE_ID_SOUNDSYSTEM, orxSoundSystem);
-  orxMODULE_REGISTER(orxMODULE_ID_SPAWNER, orxSpawner);
-  orxMODULE_REGISTER(orxMODULE_ID_STRING, orxString);
-  orxMODULE_REGISTER(orxMODULE_ID_STRUCTURE, orxStructure);
-  orxMODULE_REGISTER(orxMODULE_ID_SYSTEM, orxSystem);
-  orxMODULE_REGISTER(orxMODULE_ID_TEXT, orxText);
-  orxMODULE_REGISTER(orxMODULE_ID_TEXTURE, orxTexture);
-  orxMODULE_REGISTER(orxMODULE_ID_THREAD, orxThread);
-  orxMODULE_REGISTER(orxMODULE_ID_TIMELINE, orxTimeLine);
-  orxMODULE_REGISTER(orxMODULE_ID_VIEWPORT, orxViewport);
+  orxMODULE_REGISTER(ANIM, orxAnim);
+  orxMODULE_REGISTER(ANIMPOINTER, orxAnimPointer);
+  orxMODULE_REGISTER(ANIMSET, orxAnimSet);
+  orxMODULE_REGISTER(BANK, orxBank);
+  orxMODULE_REGISTER(BODY, orxBody);
+  orxMODULE_REGISTER(PARTICLEGROUP, orxParticleGroup);
+  orxMODULE_REGISTER(CAMERA, orxCamera);
+  orxMODULE_REGISTER(CLOCK, orxClock);
+  orxMODULE_REGISTER(COMMAND, orxCommand);
+  orxMODULE_REGISTER(CONFIG, orxConfig);
+  orxMODULE_REGISTER(CONSOLE, orxConsole);
+  orxMODULE_REGISTER(DISPLAY, orxDisplay);
+  orxMODULE_REGISTER(EVENT, orxEvent);
+  orxMODULE_REGISTER(FILE, orxFile);
+  orxMODULE_REGISTER(FONT, orxFont);
+  orxMODULE_REGISTER(FPS, orxFPS);
+  orxMODULE_REGISTER(FRAME, orxFrame);
+  orxMODULE_REGISTER(FX, orxFX);
+  orxMODULE_REGISTER(FXPOINTER, orxFXPointer);
+  orxMODULE_REGISTER(GRAPHIC, orxGraphic);
+  orxMODULE_REGISTER(INPUT, orxInput);
+  orxMODULE_REGISTER(JOYSTICK, orxJoystick);
+  orxMODULE_REGISTER(KEYBOARD, orxKeyboard);
+  orxMODULE_REGISTER(LOCALE, orxLocale);
+  orxMODULE_REGISTER(MEMORY, orxMemory);
+  orxMODULE_REGISTER(MOUSE, orxMouse);
+  orxMODULE_REGISTER(OBJECT, orxObject);
+  orxMODULE_REGISTER(PARAM, orxParam);
+  orxMODULE_REGISTER(PHYSICS, orxPhysics);
+  orxMODULE_REGISTER(PLUGIN, orxPlugin);
+  orxMODULE_REGISTER(PROFILER, orxProfiler);
+  orxMODULE_REGISTER(RENDER, orxRender);
+  orxMODULE_REGISTER(RESOURCE, orxResource);
+  orxMODULE_REGISTER(SCREENSHOT, orxScreenshot);
+  orxMODULE_REGISTER(SHADER, orxShader);
+  orxMODULE_REGISTER(SHADERPOINTER, orxShaderPointer);
+  orxMODULE_REGISTER(SOUND, orxSound);
+  orxMODULE_REGISTER(SOUNDPOINTER, orxSoundPointer);
+  orxMODULE_REGISTER(SOUNDSYSTEM, orxSoundSystem);
+  orxMODULE_REGISTER(SPAWNER, orxSpawner);
+  orxMODULE_REGISTER(STRING, orxString);
+  orxMODULE_REGISTER(STRUCTURE, orxStructure);
+  orxMODULE_REGISTER(SYSTEM, orxSystem);
+  orxMODULE_REGISTER(TEXT, orxText);
+  orxMODULE_REGISTER(TEXTURE, orxTexture);
+  orxMODULE_REGISTER(THREAD, orxThread);
+  orxMODULE_REGISTER(TIMELINE, orxTimeLine);
+  orxMODULE_REGISTER(VIEWPORT, orxViewport);
 
   /* Done! */
   return;
@@ -117,6 +117,11 @@ void orxFASTCALL orxModule_RegisterAll()
 #define orxMODULE_KU32_STATUS_MASK_ALL          0xFFFFFFFF
 
 
+/** Misc
+ */
+#define orxMODULE_KU32_NAME_SIZE                32
+
+
 /***************************************************************************
  * Structure declaration                                                   *
  ***************************************************************************/
@@ -127,10 +132,12 @@ typedef struct __orxMODULE_INFO_t
 {
   orxU64                    u64DependFlags;                 /**< Dependency flags : 8 */
   orxU64                    u64OptionalDependFlags;         /**< Optional dependency flags : 16 */
-  orxMODULE_SETUP_FUNCTION  pfnSetup;                       /**< Setup function : 20 */
-  orxMODULE_INIT_FUNCTION   pfnInit;                        /**< Init function : 24 */
-  orxMODULE_EXIT_FUNCTION   pfnExit;                        /**< Exit function : 28 */
-  orxU32                    u32StatusFlags;                 /**< Status flags : 32 */
+  orxU64                    u64ParentFlags;                 /**< Parent flags : 24 */
+  orxMODULE_SETUP_FUNCTION  pfnSetup;                       /**< Setup function : 28 */
+  orxMODULE_INIT_FUNCTION   pfnInit;                        /**< Init function : 32 */
+  orxMODULE_EXIT_FUNCTION   pfnExit;                        /**< Exit function : 36 */
+  orxU32                    u32StatusFlags;                 /**< Status flags : 40 */
+  orxCHAR                   acName[orxMODULE_KU32_NAME_SIZE]; /**< Name : 72 */
 
 } orxMODULE_INFO;
 
@@ -138,8 +145,8 @@ typedef struct __orxMODULE_INFO_t
  */
 typedef struct __orxMODULE_STATIC_t
 {
-  orxMODULE_INFO  astModuleInfo[orxMODULE_ID_NUMBER];
-  orxU32          u32InitLoopCounter;
+  orxMODULE_INFO            astModuleInfo[orxMODULE_ID_NUMBER];
+  orxU32                    u32InitLoopCounter;
 
 } orxMODULE_STATIC;
 
@@ -157,20 +164,71 @@ static orxMODULE_STATIC sstModule;
  * Private functions                                                       *
  ***************************************************************************/
 
+/** Calls a module setup
+ */
+static orxINLINE void orxModule_Setup(orxMODULE_ID _eModuleID)
+{
+  /* Checks */
+  orxASSERT(_eModuleID < orxMODULE_ID_NUMBER);
+
+  /* Is registered? */
+  if(sstModule.astModuleInfo[_eModuleID].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_REGISTERED)
+  {
+    /* Has setup function? */
+    if(sstModule.astModuleInfo[_eModuleID].pfnSetup != orxNULL)
+    {
+      /* Calls it */
+      sstModule.astModuleInfo[_eModuleID].pfnSetup();
+    }
+  }
+
+  /* Done! */
+  return;
+}
+
+/** Calls all module setups
+ */
+static orxINLINE void orxModule_SetupAll()
+{
+  orxU32 eID;
+
+  /* Clears static variable */
+  sstModule.u32InitLoopCounter = 0;
+
+  /* For all modules */
+  for(eID = 0; eID < orxMODULE_ID_NUMBER; eID++)
+  {
+    /* Calls module setup */
+    orxModule_Setup((orxMODULE_ID)eID);
+  }
+
+  /* Done! */
+  return;
+}
+
 
 /***************************************************************************
  * Public functions                                                        *
  ***************************************************************************/
 
 /** Registers a module
+ * @param[in]   _eModuleID                Concerned module ID
+ * @param[in]   _zModuleName              Module name
+ * @param[in]   _pfnSetup                 Module setup callback
+ * @param[in]   _pfnInit                  Module init callback
+ * @param[in]   _pfnExit                  Module exit callback
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-void orxFASTCALL orxModule_Register(orxMODULE_ID _eModuleID, const orxMODULE_SETUP_FUNCTION _pfnSetup, const orxMODULE_INIT_FUNCTION _pfnInit, const orxMODULE_EXIT_FUNCTION _pfnExit)
+void orxFASTCALL orxModule_Register(orxMODULE_ID _eModuleID, const orxSTRING _zModuleName, const orxMODULE_SETUP_FUNCTION _pfnSetup, const orxMODULE_INIT_FUNCTION _pfnInit, const orxMODULE_EXIT_FUNCTION _pfnExit)
 {
   /* Checks */
   orxASSERT(_eModuleID < orxMODULE_ID_NUMBER);
 
   /* Clears module info */
   orxMemory_Zero(&(sstModule.astModuleInfo[_eModuleID]), sizeof(orxMODULE_INFO));
+
+  /* Stores its name */
+  orxString_NPrint(sstModule.astModuleInfo[_eModuleID].acName, orxMODULE_KU32_NAME_SIZE - 1, _zModuleName);
 
   /* Stores module functions */
   sstModule.astModuleInfo[_eModuleID].pfnSetup  = _pfnSetup;
@@ -179,6 +237,16 @@ void orxFASTCALL orxModule_Register(orxMODULE_ID _eModuleID, const orxMODULE_SET
 
   /* Updates module status flags */
   sstModule.astModuleInfo[_eModuleID].u32StatusFlags = orxMODULE_KU32_STATUS_FLAG_REGISTERED;
+
+  /* Main module? */
+  if(_eModuleID == orxMODULE_ID_MAIN)
+  {
+    /* Registers all other modules */
+    orxModule_RegisterAll();
+
+    /* Setups all modules */
+    orxModule_SetupAll();
+  }
 
   /* Done! */
   return;
@@ -211,47 +279,6 @@ void orxFASTCALL orxModule_AddOptionalDependency(orxMODULE_ID _eModuleID, orxMOD
   sstModule.astModuleInfo[_eModuleID].u64OptionalDependFlags |= ((orxU64)1) << _eDependID;
 
   /* Done! */
-  return;
-}
-
-/** Calls a module setup
- */
-void orxFASTCALL orxModule_Setup(orxMODULE_ID _eModuleID)
-{
-  /* Checks */
-  orxASSERT(_eModuleID < orxMODULE_ID_NUMBER);
-
-  /* Is registered? */
-  if(sstModule.astModuleInfo[_eModuleID].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_REGISTERED)
-  {
-    /* Has setup function? */
-    if(sstModule.astModuleInfo[_eModuleID].pfnSetup != orxNULL)
-    {
-      /* Calls it */
-      sstModule.astModuleInfo[_eModuleID].pfnSetup();
-    }
-  }
-
-  /* Done! */
-  return;
-}
-
-/** Calls all module setups
- */
-void orxFASTCALL orxModule_SetupAll()
-{
-  orxU32 eID;
-
-  /* Clears static variable */
-  sstModule.u32InitLoopCounter = 0;
-
-  /* For all modules */
-  for(eID = 0; eID < orxMODULE_ID_NUMBER; eID++)
-  {
-    /* Calls module setup */
-    orxModule_Setup((orxMODULE_ID)eID);
-  }
-
   return;
 }
 
@@ -290,8 +317,13 @@ orxSTATUS orxFASTCALL orxModule_Init(orxMODULE_ID _eModuleID)
             /* Inits it */
             eResult = orxModule_Init((orxMODULE_ID)u32Index);
 
-            /* Failed ? */
-            if(eResult == orxSTATUS_FAILURE)
+            /* Success ? */
+            if(eResult != orxSTATUS_FAILURE)
+            {
+              /* Updates flags */
+              sstModule.astModuleInfo[u32Index].u64ParentFlags |= (orxU64)1 << _eModuleID;
+            }
+            else
             {
               /* Stops init here */
               break;
@@ -300,26 +332,30 @@ orxSTATUS orxFASTCALL orxModule_Init(orxMODULE_ID _eModuleID)
         }
       }
 
-      /* For all optional dependencies */
-      for(u64Depend = sstModule.astModuleInfo[_eModuleID].u64OptionalDependFlags, u32Index = 0;
-          u64Depend != (orxU64)0;
-          u64Depend >>= 1, u32Index++)
-      {
-        /* Depends? */
-        if(u64Depend & (orxU64)1)
-        {
-          /* Not already initialized */
-          if(!(sstModule.astModuleInfo[u32Index].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_INITIALIZED))
-          {
-            /* Inits it */
-            orxModule_Init((orxMODULE_ID)u32Index);
-          }
-        }
-      }
-
-      /* All dependencies initialized? */
+      /* Success? */
       if(eResult != orxSTATUS_FAILURE)
       {
+        /* For all optional dependencies */
+        for(u64Depend = sstModule.astModuleInfo[_eModuleID].u64OptionalDependFlags, u32Index = 0;
+            u64Depend != (orxU64)0;
+            u64Depend >>= 1, u32Index++)
+        {
+          /* Depends? */
+          if(u64Depend & (orxU64)1)
+          {
+            /* Not already initialized */
+            if(!(sstModule.astModuleInfo[u32Index].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_INITIALIZED))
+            {
+              /* Inits it */
+              if(orxModule_Init((orxMODULE_ID)u32Index) != orxSTATUS_FAILURE)
+              {
+                /* Updates flags */
+                sstModule.astModuleInfo[u32Index].u64ParentFlags |= (orxU64)1 << _eModuleID;
+              }
+            }
+          }
+        }
+
         /* Not already initialized */
         if(!(sstModule.astModuleInfo[_eModuleID].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_INITIALIZED))
         {
@@ -365,6 +401,9 @@ orxSTATUS orxFASTCALL orxModule_Init(orxMODULE_ID _eModuleID)
         /* Is temporary initialized? */
         if(sstModule.astModuleInfo[u32Index].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_PENDING)
         {
+          /* Updates flags */
+          sstModule.astModuleInfo[u32Index].u64ParentFlags &= ~(orxU64)1 << _eModuleID;
+
           /* Internal exit call */
           orxModule_Exit((orxMODULE_ID)u32Index);
         }
@@ -386,56 +425,10 @@ orxSTATUS orxFASTCALL orxModule_Init(orxMODULE_ID _eModuleID)
   return eResult;
 }
 
-/** Inits all modules
- */
-orxSTATUS orxFASTCALL orxModule_InitAll()
-{
-  orxU32    eID, u32InitCounter;
-  orxSTATUS eResult = orxSTATUS_SUCCESS;
-
-  /* For all modules */
-  for(eID = 0, u32InitCounter = 0; eID < orxMODULE_ID_NUMBER; eID++)
-  {
-    /* Calls module init */
-    eResult = orxModule_Init((orxMODULE_ID)eID);
-
-    /* Failed? */
-    if(eResult != orxSTATUS_FAILURE)
-    {
-      /* Updates init counter */
-      u32InitCounter++;
-    }
-    else
-    {
-      /* Logs message */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_SYSTEM, "Failed to initialized module ID (%d).", eID);
-    }
-  }
-
-  /* Nothing initialized? */
-  if(u32InitCounter == 0)
-  {
-    /* Failed */
-    eResult = orxSTATUS_FAILURE;
-
-    /* Logs message */
-    orxDEBUG_PRINT(orxDEBUG_LEVEL_SYSTEM, "No modules initialized.");
-  }
-  else
-  {
-    /* Success */
-    eResult = orxSTATUS_SUCCESS;
-  }
-
-  /* Done! */
-  return eResult;
-}
-
 /** Exits from a module recursively
  */
 void orxFASTCALL orxModule_Exit(orxMODULE_ID _eModuleID)
 {
-  orxU64 u64Depend;
   orxU32 u32Index;
 
   /* Checks */
@@ -444,8 +437,11 @@ void orxFASTCALL orxModule_Exit(orxMODULE_ID _eModuleID)
   /* Is initialized? */
   if(sstModule.astModuleInfo[_eModuleID].u32StatusFlags & orxMODULE_KU32_STATUS_FLAG_INITIALIZED)
   {
+    orxU64 u64Depend;
+
     /* Cleans flags */
     sstModule.astModuleInfo[_eModuleID].u32StatusFlags &= ~(orxMODULE_KU32_STATUS_FLAG_INITIALIZED|orxMODULE_KU32_STATUS_FLAG_PENDING);
+    sstModule.astModuleInfo[_eModuleID].u64ParentFlags  = 0;
 
     /* Computes dependency flag */
     u64Depend = (orxU64)1 << _eModuleID;
@@ -478,25 +474,30 @@ void orxFASTCALL orxModule_Exit(orxMODULE_ID _eModuleID)
       /* Calls it */
       sstModule.astModuleInfo[_eModuleID].pfnExit();
     }
+
+    /* For all modules */
+    for(u32Index = 0; u32Index < orxMODULE_ID_NUMBER; u32Index++)
+    {
+      /* Has parents? */
+      if(sstModule.astModuleInfo[u32Index].u64ParentFlags != 0)
+      {
+        /* Was this module one of its parents? */
+        if(sstModule.astModuleInfo[u32Index].u64ParentFlags & u64Depend)
+        {
+          /* Removes self as parent */
+          sstModule.astModuleInfo[u32Index].u64ParentFlags &= ~u64Depend;
+
+          /* No more parents? */
+          if(sstModule.astModuleInfo[u32Index].u64ParentFlags == 0)
+          {
+            /* Exits from it */
+            orxModule_Exit((orxMODULE_ID)u32Index);
+          }
+        }
+      }
+    }
   }
 
-  return;
-}
-
-/** Exits from all modules
- */
-void orxFASTCALL orxModule_ExitAll()
-{
-  orxU32 eID;
-
-  /* For all modules */
-  for(eID = 0; eID < orxMODULE_ID_NUMBER; eID++)
-  {
-    /* Calls module exit */
-    orxModule_Exit((orxMODULE_ID)eID);
-  }
-
-  /* Done! */
   return;
 }
 
@@ -516,4 +517,22 @@ orxBOOL orxFASTCALL orxModule_IsInitialized(orxMODULE_ID _eModuleID)
 
   /* Done! */
   return bResult;
+}
+
+/** Gets module name
+ * @param[in]   _eModuleID                Concerned module ID
+ * @return Module name / orxSTRING_EMPTY
+ */
+const orxSTRING orxFASTCALL orxModule_GetName(orxMODULE_ID _eModuleID)
+{
+  const orxSTRING zResult = orxSTRING_EMPTY;
+
+  /* Checks */
+  orxASSERT(_eModuleID < orxMODULE_ID_NUMBER);
+
+  /* Updates result */
+  zResult = sstModule.astModuleInfo[_eModuleID].acName;
+
+  /* Done! */
+  return zResult;
 }

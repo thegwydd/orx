@@ -238,7 +238,8 @@ typedef struct __orxDISPLAY_EVENT_PAYLOAD_t
     struct
     {
       const orxSTRING zLocation;                            /**< File location : 40 */
-      orxU32          u32ID;                                /**< Bitmap ID : 44 */
+      orxU32          u32FilenameID;                        /**< File name ID : 44 */
+      orxU32          u32ID;                                /**< Bitmap (hardware texture) ID : 48 */
 
     } stBitmap;
   };
@@ -283,6 +284,7 @@ typedef struct __orxDISPLAY_EVENT_PAYLOAD_t
 
 + (orxView *) GetInstance;
 
+- (void) QueueEvent:(orxENUM)_eID WithPayload:(orxSYSTEM_EVENT_PAYLOAD *)_pstPayload;
 - (void) NotifyAcceleration:(UIAcceleration *)_poAcceleration;
 
 @property (nonatomic, retain) EAGLContext  *poMainContext;
@@ -894,7 +896,7 @@ extern orxDLLAPI const orxBITMAP *orxFASTCALL         orxDisplay_GetTempBitmap()
 extern orxDLLAPI orxSTATUS orxFASTCALL                orxDisplay_SetDestinationBitmaps(orxBITMAP **_apstBitmapList, orxU32 _u32Number);
 
 /** Clears a bitmap
- * @param[in]   _pstBitmap                            Concerned bitmap
+ * @param[in]   _pstBitmap                            Concerned bitmap, if orxNULL all the current destination bitmaps will be cleared instead
  * @param[in]   _stColor                              Color to clear the bitmap with
  * @return orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */

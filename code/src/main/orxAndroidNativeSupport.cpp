@@ -61,6 +61,7 @@ struct android_app;
 typedef struct __orxANDROID_STATIC_t {
         char *zAndroidInternalFilesPath;
         orxBOOL bPaused;
+        orxBOOL bHasFocus;
 
         int32_t lastWidth;
         int32_t lastHeight;
@@ -121,23 +122,19 @@ void orxAndroid_JNI_SetupThread(void) {
 
 extern "C" ANativeWindow* orxAndroid_GetNativeWindow()
 {
-    int ident;
-    int events;
-    android_poll_source* source;
+  int ident;
+  int events;
+  android_poll_source* source;
 
-    LOGI("orxAndroid_GetNativeWindow()");
+  LOGI("orxAndroid_GetNativeWindow()");
 
-    while(sstAndroid.app_->window == NULL)
-    {
-        LOGI("no window received yet");
+  while(sstAndroid.app_->window == NULL && !sstAndroid.app_->destroyRequested)
+  {
+    LOGI("no window received yet");
+    orxAndroid_PumpEvents();
+  }
 
-        ident = ALooper_pollAll(-1, NULL, &events, (void**) &source );
-        // Process this event.
-        if( source != NULL )
-            source->process( sstAndroid.app_, source );
-    }
-
-    return sstAndroid.app_->window;
+  return sstAndroid.app_->window;
 }
 
 extern "C" void *orxAndroid_GetJNIEnv()
@@ -370,11 +367,13 @@ void handleCmd( struct android_app* app, int32_t cmd )
     case APP_CMD_GAINED_FOCUS:
         LOGI("APP_CMD_GAINED_FOCUS");
 
+        sstAndroid.bHasFocus = orxTRUE;
         orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_FOCUS_GAINED);
         break;
     case APP_CMD_LOST_FOCUS:
         LOGI("APP_CMD_LOST_FOCUS");
 
+        sstAndroid.bHasFocus = orxFALSE;
         orxEvent_SendShort(orxEVENT_TYPE_SYSTEM, orxSYSTEM_EVENT_FOCUS_LOST);
         break;
     default:
@@ -384,7 +383,7 @@ void handleCmd( struct android_app* app, int32_t cmd )
 
 static inline orxBOOL isInteractible()
 {
-  return (sstAndroid.app_->window != NULL && sstAndroid.bPaused != orxTRUE);
+  return (sstAndroid.app_->window && !sstAndroid.bPaused && sstAndroid.bHasFocus);
 }
 
 
@@ -416,22 +415,25 @@ extern "C" void orxAndroid_PumpEvents()
         }
     }
 
-    // Check if window size changed
-    int32_t newWidth = ANativeWindow_getWidth(sstAndroid.app_->window);
-    int32_t newHeight = ANativeWindow_getHeight(sstAndroid.app_->window);
-
-    if(newWidth != sstAndroid.lastWidth || newHeight != sstAndroid.lastHeight)
+    if(sstAndroid.app_->window != NULL)
     {
-        orxANDROID_SURFACE_CHANGED_EVENT stSurfaceChangedEvent;
+      // Check if window size changed
+      int32_t newWidth = ANativeWindow_getWidth(sstAndroid.app_->window);
+      int32_t newHeight = ANativeWindow_getHeight(sstAndroid.app_->window);
 
-        stSurfaceChangedEvent.u32Width = newWidth;
-        stSurfaceChangedEvent.u32Height = newHeight;
+      if(newWidth != sstAndroid.lastWidth || newHeight != sstAndroid.lastHeight)
+      {
+          orxANDROID_SURFACE_CHANGED_EVENT stSurfaceChangedEvent;
 
-        orxEVENT_SEND(orxANDROID_EVENT_TYPE_SURFACE, orxANDROID_EVENT_SURFACE_CHANGED, orxNULL, orxNULL, &stSurfaceChangedEvent);
+          stSurfaceChangedEvent.u32Width = newWidth;
+          stSurfaceChangedEvent.u32Height = newHeight;
 
-        sstAndroid.lastWidth = newWidth;
-        sstAndroid.lastHeight = newHeight;
-        sstAndroid.fSurfaceScale = orxFLOAT_0;
+          orxEVENT_SEND(orxANDROID_EVENT_TYPE_SURFACE, orxANDROID_EVENT_SURFACE_CHANGED, orxNULL, orxNULL, &stSurfaceChangedEvent);
+
+          sstAndroid.lastWidth = newWidth;
+          sstAndroid.lastHeight = newHeight;
+          sstAndroid.fSurfaceScale = orxFLOAT_0;
+      }
     }
 }
 
@@ -452,6 +454,7 @@ void android_main( android_app* state )
     sstAndroid.lastWidth = 0;
     sstAndroid.lastHeight = 0;
     sstAndroid.bPaused = orxTRUE;
+    sstAndroid.bHasFocus = orxFALSE;
     sstAndroid.fSurfaceScale = orxFLOAT_0;
 
     jVM = state->activity->vm;

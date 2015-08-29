@@ -239,7 +239,7 @@ static orxSTATUS orxFASTCALL orxViewport_EventHandler(const orxEVENT *_pstEvent)
                   orxDisplay_ClearBitmap(pstBitmap, orx2RGBA(0, 0, 0, 0));
 
                   /* Re-links it */
-                  orxTexture_LinkBitmap(pstViewport->apstTextureList[i], pstBitmap, acBuffer);
+                  (void)orxTexture_LinkBitmap(pstViewport->apstTextureList[i], pstBitmap, acBuffer);
                 }
               }
 
@@ -1383,7 +1383,7 @@ orxSTATUS orxFASTCALL orxViewport_AddShader(orxVIEWPORT *_pstViewport, const orx
     if(_pstViewport->pstShaderPointer == orxNULL)
     {
       /* Creates one */
-      _pstViewport->pstShaderPointer = orxShaderPointer_Create(orxSTRUCTURE(_pstViewport));
+      _pstViewport->pstShaderPointer = orxShaderPointer_Create();
 
       /* Valid? */
       if(_pstViewport->pstShaderPointer != orxNULL)
