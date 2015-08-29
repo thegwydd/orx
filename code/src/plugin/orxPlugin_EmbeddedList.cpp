@@ -54,7 +54,7 @@
 #include "../plugins/Joystick/android/orxJoystick.c"
 #include "../plugins/Keyboard/android/orxKeyboard.cpp"
 #include "../plugins/Mouse/android/orxMouse.c"
-#include "../plugins/Physics/Box2D/orxPhysics.cpp"
+#include "../plugins/Physics/LiquidFun/orxPhysics.cpp"
 #include "../plugins/Render/Home/orxRender.c"
 #include "../plugins/Sound/android/orxSoundSystem.c"
 

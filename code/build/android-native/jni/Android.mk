@@ -40,6 +40,7 @@ ORX_SRC_FILES := \
 	main/orxParam.c           \
 	physics/orxPhysics.c      \
 	physics/orxBody.c         \
+	physics/orxParticleGroup.c \
 	object/orxStructure.c     \
 	object/orxTimeLine.c      \
 	object/orxFrame.c         \
@@ -56,13 +57,13 @@ ORX_SRC_FILES := \
 	debug/orxFPS.c            \
 	debug/orxDebug.c          \
 	debug/orxProfiler.c       \
-        plugin/orxPlugin_EmbeddedList.cpp \
+  plugin/orxPlugin_EmbeddedList.cpp \
 	main/orxAndroidNativeSupport.cpp
 
 ORX_INCLUDES := $(LOCAL_PATH)/../include \
                     $(LOCAL_PATH)/../../extern/dlmalloc \
                     $(LOCAL_PATH)/../../extern/stb_image \
-                    $(LOCAL_PATH)/../../extern/Box2D_2.1.3/include \
+                    $(LOCAL_PATH)/../../extern/LiquidFun-1.1.0/include \
                     $(LOCAL_PATH)/../../extern/openal-soft/include \
                     $(LOCAL_PATH)/../../extern/Tremolo \
                     $(LOCAL_PATH)/../../extern/libwebp/include
