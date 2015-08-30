@@ -26,7 +26,6 @@
 		E05455AB15172B9500917458 /* orxIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = E054559A15172B9500917458 /* orxIcon.png */; };
 		E05455AC15172B9500917458 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = E054559B15172B9500917458 /* wall.png */; };
 		E05455AE15172B9500917458 /* orxTest.mm in Sources */ = {isa = PBXBuildFile; fileRef = E054559D15172B9500917458 /* orxTest.mm */; };
-		E05455FE15172DFA00917458 /* libBox2D.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E059C5711116B9330086879B /* libBox2D.a */; };
 		E0562E5A11361B13003EEFAE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E0562E5911361B13003EEFAE /* AudioToolbox.framework */; };
 		E0562E5C11361B13003EEFAE /* OpenAL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E0562E5B11361B13003EEFAE /* OpenAL.framework */; };
 		E059C6361116BC430086879B /* liborxd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E059C62D1116BB240086879B /* liborxd.a */; };
@@ -87,6 +86,8 @@
 		E0FCA0791A77473D007BB701 /* libwebpdecoder.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E0FCA0781A77473D007BB701 /* libwebpdecoder.a */; };
 		E0FDF07B15466EE000E94747 /* orxTimeLine.c in Sources */ = {isa = PBXBuildFile; fileRef = E0FDF07A15466EE000E94747 /* orxTimeLine.c */; };
 		E0FFCC6215D8F63200CF3E5E /* orxConsole.c in Sources */ = {isa = PBXBuildFile; fileRef = E0FFCC6115D8F63200CF3E5E /* orxConsole.c */; };
+		E7857D631B92FF6A009C3571 /* libliquidfun.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7857D621B92FF6A009C3571 /* libliquidfun.a */; };
+		E7857D671B9300F1009C3571 /* orxParticleGroup.c in Sources */ = {isa = PBXBuildFile; fileRef = E7857D661B9300F1009C3571 /* orxParticleGroup.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,7 +174,6 @@
 		E059C5351116B8E70086879B /* orxLinkList.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxLinkList.c; sourceTree = "<group>"; };
 		E059C5371116B8E70086879B /* orxString.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxString.c; sourceTree = "<group>"; };
 		E059C5381116B8E70086879B /* orxTree.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxTree.c; sourceTree = "<group>"; };
-		E059C5711116B9330086879B /* libBox2D.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libBox2D.a; path = ../../../../extern/Box2D_2.1.3/lib/ios/libBox2D.a; sourceTree = SOURCE_ROOT; };
 		E059C58E1116BABE0086879B /* orxAnim.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxAnim.h; sourceTree = "<group>"; };
 		E059C58F1116BABE0086879B /* orxAnimPointer.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxAnimPointer.h; sourceTree = "<group>"; };
 		E059C5901116BABE0086879B /* orxAnimSet.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxAnimSet.h; sourceTree = "<group>"; };
@@ -240,7 +240,6 @@
 		E059C5E01116BABE0086879B /* orxString.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxString.h; sourceTree = "<group>"; };
 		E059C5E11116BABE0086879B /* orxTree.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxTree.h; sourceTree = "<group>"; };
 		E059C5F61116BACF0086879B /* orxKeyboard.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxKeyboard.c; sourceTree = "<group>"; };
-		E059C6041116BACF0086879B /* orxPhysics.cpp */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.cpp.cpp; path = orxPhysics.cpp; sourceTree = "<group>"; };
 		E059C6071116BACF0086879B /* orxRender.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxRender.c; sourceTree = "<group>"; };
 		E059C62D1116BB240086879B /* liborxd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = liborxd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0676108120B94F200976222 /* orxScreenshot.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxScreenshot.c; sourceTree = "<group>"; };
@@ -261,6 +260,9 @@
 		E0FDF07C15466EEE00E94747 /* orxTimeLine.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxTimeLine.h; sourceTree = "<group>"; };
 		E0FFCC6015D8F62600CF3E5E /* orxConsole.h */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.h; path = orxConsole.h; sourceTree = "<group>"; };
 		E0FFCC6115D8F63200CF3E5E /* orxConsole.c */ = {isa = PBXFileReference; fileEncoding = 12; lastKnownFileType = sourcecode.c.c; path = orxConsole.c; sourceTree = "<group>"; };
+		E7857D621B92FF6A009C3571 /* libliquidfun.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libliquidfun.a; path = "../../../../extern/LiquidFun-1.1.0/lib/ios/libliquidfun.a"; sourceTree = "<group>"; };
+		E7857D651B93008E009C3571 /* orxPhysics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = orxPhysics.cpp; sourceTree = "<group>"; };
+		E7857D661B9300F1009C3571 /* orxParticleGroup.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = orxParticleGroup.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -284,7 +286,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E0FCA0791A77473D007BB701 /* libwebpdecoder.a in Frameworks */,
-				E05455FE15172DFA00917458 /* libBox2D.a in Frameworks */,
+				E7857D631B92FF6A009C3571 /* libliquidfun.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,8 +326,8 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E7857D621B92FF6A009C3571 /* libliquidfun.a */,
 				E0FCA0781A77473D007BB701 /* libwebpdecoder.a */,
-				E059C5711116B9330086879B /* libBox2D.a */,
 				E0562E5911361B13003EEFAE /* AudioToolbox.framework */,
 				288765FC0DF74451002DB57D /* CoreGraphics.framework */,
 				1D30AB110D05D00D00671497 /* Foundation.framework */,
@@ -560,6 +562,7 @@
 			isa = PBXGroup;
 			children = (
 				E059C5221116B8E70086879B /* orxBody.c */,
+				E7857D661B9300F1009C3571 /* orxParticleGroup.c */,
 				E059C5231116B8E70086879B /* orxPhysics.c */,
 			);
 			path = physics;
@@ -876,17 +879,9 @@
 		E059C6021116BACF0086879B /* Physics */ = {
 			isa = PBXGroup;
 			children = (
-				E059C6031116BACF0086879B /* Box2D */,
+				E7857D641B93008E009C3571 /* LiquidFun */,
 			);
 			path = Physics;
-			sourceTree = "<group>";
-		};
-		E059C6031116BACF0086879B /* Box2D */ = {
-			isa = PBXGroup;
-			children = (
-				E059C6041116BACF0086879B /* orxPhysics.cpp */,
-			);
-			path = Box2D;
 			sourceTree = "<group>";
 		};
 		E059C6051116BACF0086879B /* Render */ = {
@@ -911,6 +906,14 @@
 				E054558715172B3D00917458 /* iOS */,
 			);
 			path = Sound;
+			sourceTree = "<group>";
+		};
+		E7857D641B93008E009C3571 /* LiquidFun */ = {
+			isa = PBXGroup;
+			children = (
+				E7857D651B93008E009C3571 /* orxPhysics.cpp */,
+			);
+			path = LiquidFun;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -956,7 +959,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0640;
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "orx-ios" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -1030,6 +1033,7 @@
 				E059C6441116BC610086879B /* orxDisplay.c in Sources */,
 				E059C6451116BC610086879B /* orxGraphic.c in Sources */,
 				E07AABF2114BDA17002741D3 /* orxFont.c in Sources */,
+				E7857D671B9300F1009C3571 /* orxParticleGroup.c in Sources */,
 				E059C6461116BC610086879B /* orxText.c in Sources */,
 				E059C6471116BC610086879B /* orxTexture.c in Sources */,
 				E059C6481116BC610086879B /* orxFile.c in Sources */,
@@ -1088,7 +1092,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1143,7 +1146,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1195,12 +1197,24 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VALUE = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
@@ -1213,12 +1227,24 @@
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_UNROLL_LOOPS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VALUE = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
@@ -1231,7 +1257,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "Don't Code Sign";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Don't Code Sign";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1261,7 +1286,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					../../../../extern/libwebp/lib/ios,
-					../../../../extern/Box2D_2.1.3/lib/ios,
+					"../../../../extern/LiquidFun-1.1.0/lib/ios",
+					"/Users/philippesimons/libs/orx/extern/LiquidFun-1.1.0/lib/ios",
 				);
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-ffast-math";
@@ -1274,7 +1300,7 @@
 				SDKROOT = iphoneos;
 				SYMROOT = ../../../lib/static/ios;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/Box2D_2.1.3/include ../../../../extern/dlmalloc ../../../include";
+				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/LiquidFun-1.1.0/include ../../../../extern/dlmalloc ../../../include";
 				WARNING_CFLAGS = "-Wno-unused-value";
 			};
 			name = Debug;
@@ -1283,7 +1309,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "Don't Code Sign";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Don't Code Sign";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1313,7 +1338,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					../../../../extern/libwebp/lib/ios,
-					../../../../extern/Box2D_2.1.3/lib/ios,
+					"../../../../extern/LiquidFun-1.1.0/lib/ios",
+					"/Users/philippesimons/libs/orx/extern/LiquidFun-1.1.0/lib/ios",
 				);
 				OTHER_CFLAGS = "-ffast-math";
 				OTHER_LDFLAGS = "-ObjC";
@@ -1325,7 +1351,7 @@
 				SDKROOT = iphoneos;
 				SYMROOT = ../../../lib/static/ios;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/Box2D_2.1.3/include ../../../../extern/dlmalloc ../../../include";
+				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/LiquidFun-1.1.0/include ../../../../extern/dlmalloc ../../../include";
 				WARNING_CFLAGS = (
 					"-Qunused-arguments",
 					"-Wno-unused-value",
@@ -1337,12 +1363,24 @@
 		E0D6C472137FB87B0020A876 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_UNROLL_LOOPS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VALUE = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
@@ -1355,7 +1393,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1408,7 +1445,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "Don't Code Sign";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Don't Code Sign";
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)";
@@ -1438,7 +1474,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					../../../../extern/libwebp/lib/ios,
-					../../../../extern/Box2D_2.1.3/lib/ios,
+					"../../../../extern/LiquidFun-1.1.0/lib/ios",
+					"/Users/philippesimons/libs/orx/extern/LiquidFun-1.1.0/lib/ios",
 				);
 				OTHER_CFLAGS = "-ffast-math";
 				OTHER_LDFLAGS = "-ObjC";
@@ -1450,7 +1487,7 @@
 				SDKROOT = iphoneos;
 				SYMROOT = ../../../lib/static/ios;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/Box2D_2.1.3/include ../../../../extern/dlmalloc ../../../include";
+				USER_HEADER_SEARCH_PATHS = "../../../../extern/stb_image ../../../../extern/stb_vorbis ../../../../extern/libwebp/include ../../../../extern/LiquidFun-1.1.0/include ../../../../extern/dlmalloc ../../../include";
 				WARNING_CFLAGS = (
 					"-Qunused-arguments",
 					"-Wno-unused-value",
