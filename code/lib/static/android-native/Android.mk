@@ -5,7 +5,7 @@ LOCAL_MODULE := orx
 LOCAL_SRC_FILES := $(TARGET_ARCH_ABI)/liborx.a
 LOCAL_STATIC_LIBRARIES := LiquidFun-prebuilt Tremolo-prebuilt OpenAL-prebuilt WebP-prebuilt android_native_app_glue
 
-TARGET_PLATFORM = android-9
+TARGET_PLATFORM = android-10
 
 LOCAL_EXPORT_CFLAGS := -D__orxANDROID_NATIVE__
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../include
@@ -18,7 +18,7 @@ LOCAL_MODULE := orxd
 LOCAL_SRC_FILES := $(TARGET_ARCH_ABI)/liborxd.a
 LOCAL_STATIC_LIBRARIES := LiquidFun-prebuilt Tremolo-prebuilt OpenAL-prebuilt WebP-prebuilt android_native_app_glue
 
-TARGET_PLATFORM = android-9
+TARGET_PLATFORM = android-10
 
 LOCAL_EXPORT_CFLAGS := -D__orxANDROID_NATIVE__ -D__orxDEBUG__
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../include
@@ -31,7 +31,7 @@ LOCAL_MODULE := orxp
 LOCAL_SRC_FILES := $(TARGET_ARCH_ABI)/liborxp.a
 LOCAL_STATIC_LIBRARIES := LiquidFun-prebuilt Tremolo-prebuilt OpenAL-prebuilt WebP-prebuilt android_native_app_glue
 
-TARGET_PLATFORM = android-9
+TARGET_PLATFORM = android-10
 
 LOCAL_EXPORT_CFLAGS := -D__orxANDROID_NATIVE__ -D__orxPROFILER__
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../include
