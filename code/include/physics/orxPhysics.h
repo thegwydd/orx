@@ -70,6 +70,8 @@
 #define orxBODY_PART_DEF_KU32_FLAG_SPHERE             0x00000001  /**< Sphere body part def flag */
 #define orxBODY_PART_DEF_KU32_FLAG_BOX                0x00000002  /**< Box body part def flag */
 #define orxBODY_PART_DEF_KU32_FLAG_MESH               0x00000004  /**< Mesh body part def flag */
+#define orxBODY_PART_DEF_KU32_FLAG_EDGE               0x00000008  /**< Edge body part def flag */
+#define orxBODY_PART_DEF_KU32_FLAG_CHAIN              0x00000010  /**< Chain body part def flag */
 
 #define orxBODY_PART_DEF_KU32_MASK_TYPE               0x00000007 /**< Type body part def mask */
 
@@ -111,7 +113,7 @@
 
 #define orxPARTICLEGROUP_DEF_KU32_MASK_ALL            0xFFFFFFFF  /**< Body def all mask */
 
-/** ParticleGroup sahep definition flags
+/** ParticleGroup shape definition flags
  */
 #define orxBODY_PART_DEF_KU32_FLAG_NONE               0x00000000  /**< No flags */
 
@@ -159,11 +161,13 @@ typedef struct __orxBODY_PART_DEF_t
     {
       orxVECTOR vCenter;                              /**< Sphere center : 44 */
       orxFLOAT  fRadius;                              /**< Sphere radius : 48 */
+
     } stSphere;                                       /**< Sphere : 48 */
 
     struct
     {
       orxAABOX  stBox;                                /**< Axis aligned Box : 56 */
+
     } stAABox;                                        /**< Box : 56 */
 
     struct
@@ -172,6 +176,28 @@ typedef struct __orxBODY_PART_DEF_t
       orxVECTOR avVertices[orxBODY_PART_DEF_KU32_MESH_VERTEX_NUMBER]; /**< Mesh vertices : 132 */
 
     } stMesh;
+
+    struct
+    {
+      orxVECTOR v0;                                   /**< Edge v0 (ghost): 44 */
+      orxVECTOR v1;                                   /**< Edge v1 : 56 */
+      orxVECTOR v2;                                   /**< Edge v2 : 68 */
+      orxVECTOR v3;                                   /**< Edge v3 (ghost): 80 */
+      orxBOOL   bHasVertex0;                          /**< Edge Has v0 : 84 */
+      orxBOOL   bHasVertex3;                          /**< Edge Has v3 : 88 */
+
+    } stEdge;
+
+    struct
+    {
+      orxU32    u32VertexCounter;                     /**< Chain vertex counter : 36 */
+      orxVECTOR *avVertices;                          /**< Chain vertices : 38 */
+      orxVECTOR vNext;                                /**< Chain Next vertex (ghost) : 50 */
+      orxVECTOR vPrev;                                /**< Chain Prev vertex (ghost) : 62 */
+      orxBOOL   bHasNext;                             /**< Has Next vertex : 66 */
+      orxBOOL   bHasPrev;                             /**< Has Prev vertex : 70 */
+
+    } stChain;
 
   };                                                  /**< Part : 132 */
 
@@ -283,11 +309,13 @@ typedef struct __orxPARTICLEGROUP_SHAPE_DEF_t
     {
       orxVECTOR vCenter;                              /**< Sphere center : 18 */
       orxFLOAT  fRadius;                              /**< Sphere radius : 22 */
+
     } stSphere;                                       /**< Sphere : 22 */
 
     struct
     {
       orxAABOX  stBox;                                /**< Axis aligned Box : 28 */
+
     } stAABox;                                        /**< Box : 28 */
 
     struct

@@ -167,10 +167,8 @@ class RayCastCallback : public b2RayCastCallback
 {
 public:
 
-  RayCastCallback()
+  RayCastCallback() : hResult(orxHANDLE_UNDEFINED), bEarlyExit(orxFALSE), u16SelfFlags(0), u16CheckMask(0)
   {
-    /* Clears handle */
-    hResult = orxHANDLE_UNDEFINED;
   }
 
   float32 ReportFixture(b2Fixture *_poFixture, const b2Vec2 &_rvContact, const b2Vec2 &_rvNormal, float32 _fFraction)
@@ -1164,6 +1162,8 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
   b2FixtureDef    stFixtureDef;
   b2CircleShape   stCircleShape;
   b2PolygonShape  stPolygonShape;
+  b2EdgeShape     stEdgeShape;
+  b2ChainShape    stChainShape;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
@@ -1184,8 +1184,8 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
     stCircleShape.m_p.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stSphere.vCenter.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stSphere.vCenter.fY * _pstBodyPartDef->vScale.fY);
     stCircleShape.m_radius = sstPhysics.fDimensionRatio * _pstBodyPartDef->stSphere.fRadius * orx2F(0.5f) * (orxMath_Abs(_pstBodyPartDef->vScale.fX) + orxMath_Abs(_pstBodyPartDef->vScale.fY));
   }
-  /* Polygon */
-  else
+  /* Polygon? */
+  else if(orxFLAG_TEST(_pstBodyPartDef->u32Flags, orxBODY_PART_DEF_KU32_FLAG_BOX | orxBODY_PART_DEF_KU32_FLAG_MESH))
   {
     /* Stores shape reference */
     stFixtureDef.shape = &stPolygonShape;
@@ -1249,6 +1249,142 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
 
       /* Updates shape */
       stPolygonShape.Set(avVertexList, (int32)_pstBodyPartDef->stMesh.u32VertexCounter);
+    }
+  }
+  else if(orxFLAG_TEST(_pstBodyPartDef->u32Flags, orxBODY_PART_DEF_KU32_FLAG_EDGE))
+  {
+    b2Vec2 v1, v2;
+
+    /* Stores shape reference */
+    stFixtureDef.shape = &stEdgeShape;
+
+    /* No mirroring? */
+    if(_pstBodyPartDef->vScale.fX * _pstBodyPartDef->vScale.fY > orxFLOAT_0)
+    {
+      v1.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v1.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v1.fY * _pstBodyPartDef->vScale.fY);
+      v2.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v2.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v2.fY * _pstBodyPartDef->vScale.fY);
+
+      /* Has vertex0? */
+      if(_pstBodyPartDef->stEdge.bHasVertex0)
+      {
+        b2Vec2 v0;
+
+        v0.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v0.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v0.fY * _pstBodyPartDef->vScale.fY);
+        stEdgeShape.m_hasVertex0 = true;
+        stEdgeShape.m_vertex0 = v0;
+      }
+
+      /* Has vertex3? */
+      if(_pstBodyPartDef->stEdge.bHasVertex3)
+      {
+        b2Vec2 v3;
+
+        v3.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v3.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v3.fY * _pstBodyPartDef->vScale.fY);
+        stEdgeShape.m_hasVertex3 = true;
+        stEdgeShape.m_vertex3 = v3;
+      }
+    }
+    else
+    {
+      v1.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v2.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v2.fY * _pstBodyPartDef->vScale.fY);
+      v2.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v1.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v1.fY * _pstBodyPartDef->vScale.fY);
+
+      /* Has vertex0? */
+      if(_pstBodyPartDef->stEdge.bHasVertex0)
+      {
+        b2Vec2 v0;
+
+        v0.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v0.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v0.fY * _pstBodyPartDef->vScale.fY);
+        stEdgeShape.m_hasVertex3 = true;
+        stEdgeShape.m_vertex3 = v0;
+      }
+
+      /* Has vertex3? */
+      if(_pstBodyPartDef->stEdge.bHasVertex3)
+      {
+        b2Vec2 v3;
+
+        v3.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v3.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stEdge.v3.fY * _pstBodyPartDef->vScale.fY);
+        stEdgeShape.m_hasVertex0 = true;
+        stEdgeShape.m_vertex0 = v3;
+      }
+    }
+    
+    /* Updates shape */
+    stEdgeShape.Set(v1, v2);
+  }
+  else if(orxFLAG_TEST(_pstBodyPartDef->u32Flags, orxBODY_PART_DEF_KU32_FLAG_CHAIN))
+  {
+    /* Checks */
+    orxASSERT(_pstBodyPartDef->stChain.u32VertexCounter > 0);
+    orxASSERT(_pstBodyPartDef->stChain.avVertices != orxNULL);
+
+    /* Stores shape reference */
+    stFixtureDef.shape = &stChainShape;
+
+    b2Vec2 avVertexList[_pstBodyPartDef->stChain.u32VertexCounter];
+    orxU32 i;
+
+    /* No mirroring? */
+    if(_pstBodyPartDef->vScale.fX * _pstBodyPartDef->vScale.fY > orxFLOAT_0)
+    {
+      /* For all the vertices */
+      for(i = 0; i < _pstBodyPartDef->stChain.u32VertexCounter; i++)
+      {
+        /* Sets its vector */
+        avVertexList[i].Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.avVertices[i].fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.avVertices[i].fY * _pstBodyPartDef->vScale.fY);
+      }
+
+      stChainShape.CreateChain(avVertexList, _pstBodyPartDef->stChain.u32VertexCounter);
+
+      /* Has Prev? */
+      if(_pstBodyPartDef->stChain.bHasPrev)
+      {
+        b2Vec2 vPrev;
+
+        vPrev.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vPrev.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vPrev.fY * _pstBodyPartDef->vScale.fY);
+        stChainShape.SetPrevVertex(vPrev);
+      }
+
+      /* Has Next? */
+      if(_pstBodyPartDef->stChain.bHasNext)
+      {
+        b2Vec2 vNext;
+
+        vNext.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vNext.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vNext.fY * _pstBodyPartDef->vScale.fY);
+        stChainShape.SetNextVertex(vNext);
+      }
+    }
+    else
+    {
+      orxS32 iDst;
+
+      /* For all the vertices */
+      for(iDst = _pstBodyPartDef->stChain.u32VertexCounter - 1, i = 0; iDst >= 0; iDst--, i++)
+      {
+        /* Sets its vector */
+        avVertexList[iDst].Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.avVertices[i].fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.avVertices[i].fY * _pstBodyPartDef->vScale.fY);
+      }
+
+      stChainShape.CreateChain(avVertexList, _pstBodyPartDef->stChain.u32VertexCounter);
+
+      /* Has Prev? */
+      if(_pstBodyPartDef->stChain.bHasPrev)
+      {
+        b2Vec2 vPrev;
+
+        vPrev.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vPrev.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vPrev.fY * _pstBodyPartDef->vScale.fY);
+        stChainShape.SetNextVertex(vPrev);
+      }
+
+      /* Has Next? */
+      if(_pstBodyPartDef->stChain.bHasNext)
+      {
+        b2Vec2 vNext;
+
+        vNext.Set(sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vNext.fX * _pstBodyPartDef->vScale.fX, sstPhysics.fDimensionRatio * _pstBodyPartDef->stChain.vNext.fY * _pstBodyPartDef->vScale.fY);
+        stChainShape.SetPrevVertex(vNext);
+      }
     }
   }
 
