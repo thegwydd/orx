@@ -1322,7 +1322,7 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
     /* Stores shape reference */
     stFixtureDef.shape = &stChainShape;
 
-    b2Vec2 avVertexList[_pstBodyPartDef->stChain.u32VertexCounter];
+    b2Vec2 *avVertexList = new b2Vec2[_pstBodyPartDef->stChain.u32VertexCounter];
     orxU32 i;
 
     /* No mirroring? */
@@ -1386,6 +1386,8 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
         stChainShape.SetPrevVertex(vNext);
       }
     }
+    
+    delete [] avVertexList;
   }
 
   /* Inits Fixture definition */
