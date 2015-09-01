@@ -370,8 +370,7 @@ void orxFASTCALL orxParticleGroup_Exit()
  */
 orxPARTICLEGROUP *orxFASTCALL orxParticleGroup_Create(const orxPARTICLEGROUP_DEF *_pstParticleGroupDef)
 {
-  orxPARTICLEGROUP    *pstParticleGroup;
-  orxOBJECT           *pstObject;
+  orxPARTICLEGROUP *pstParticleGroup;
 
   /* Checks */
   orxASSERT(sstParticleGroup.u32Flags & orxPARTICLEGROUP_KU32_STATIC_FLAG_READY);

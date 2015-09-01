@@ -45,6 +45,12 @@
 #endif /* __orxMSVC__ */
 
 
+#if defined(__orxWINDOWS__) && defined(__orxGCC__)
+
+  #define alloca __builtin_alloca
+
+#endif /* __orxWINDOWS__ && __orxGCC__ */
+
 #if defined(__orxDEBUG__) || defined(__orxPROFILER__)
 
   #define orxPHYSICS_ENABLE_DEBUG_DRAW
@@ -1309,7 +1315,7 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
         stEdgeShape.m_vertex0 = v3;
       }
     }
-    
+
     /* Updates shape */
     stEdgeShape.Set(v1, v2);
   }

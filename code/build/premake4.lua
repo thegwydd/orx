@@ -276,7 +276,7 @@ solution "orx"
             "../../extern/glfw-2.7/lib/vc2008",
             "../../extern/openal-soft/lib/vc2008",
             "../../extern/libsndfile-1.0.22/lib/vc2008",
-            "../../extern/LiquidFun-1.1.0/lib/msvs2008"
+            "../../extern/LiquidFun-1.1.0/lib/vc2008"
         }
 
     configuration {"vs2010"}
@@ -285,7 +285,7 @@ solution "orx"
             "../../extern/glfw-2.7/lib/vc2010",
             "../../extern/openal-soft/lib/vc2010",
             "../../extern/libsndfile-1.0.22/lib/vc2010",
-            "../../extern/LiquidFun-1.1.0/lib/msvs2010"
+            "../../extern/LiquidFun-1.1.0/lib/vc2010"
         }
 
     configuration {"vs2012"}
@@ -294,7 +294,7 @@ solution "orx"
             "../../extern/glfw-2.7/lib/vc2012",
             "../../extern/openal-soft/lib/vc2012",
             "../../extern/libsndfile-1.0.22/lib/vc2012",
-            "../../extern/LiquidFun-1.1.0/lib/msvs2012",
+            "../../extern/LiquidFun-1.1.0/lib/vc2012",
             "../../extern/libwebp/lib/vc2012"
         }
 
@@ -304,7 +304,7 @@ solution "orx"
             "../../extern/glfw-2.7/lib/vc2013/32",
             "../../extern/openal-soft/lib/vc2013/32",
             "../../extern/libsndfile-1.0.22/lib/vc2013/32",
-            "../../extern/LiquidFun-1.1.0/lib/msvs2013/32",
+            "../../extern/LiquidFun-1.1.0/lib/vc2013/32",
             "../../extern/libwebp/lib/vc2013/32"
         }
 
@@ -314,7 +314,7 @@ solution "orx"
             "../../extern/glfw-2.7/lib/vc2013/64",
             "../../extern/openal-soft/lib/vc2013/64",
             "../../extern/libsndfile-1.0.22/lib/vc2013/64",
-            "../../extern/LiquidFun-1.1.0/lib/msvs2013/64",
+            "../../extern/LiquidFun-1.1.0/lib/vc2013/64",
             "../../extern/libwebp/lib/vc2013/64"
         }
 
