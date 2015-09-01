@@ -846,78 +846,13 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   return;
 }
 
-static void orxFASTCALL orxPhysics_Box2D_SingleStep(orxFLOAT _fDT)
-{
-  orxPHYSICS_EVENT_STORAGE *pstEventStorage;
-
-  sstPhysics.poWorld->Step(_fDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
-
-  /* For all stored events */
-  for(pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetFirst(&(sstPhysics.stEventList));
-      pstEventStorage != orxNULL;
-      pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetNext(&(pstEventStorage->stNode)))
-  {
-    /* Depending on type */
-    switch(pstEventStorage->eID)
-    {
-      case orxPHYSICS_EVENT_CONTACT_ADD:
-      case orxPHYSICS_EVENT_CONTACT_REMOVE:
-      {
-        /* New contact? */
-        if(pstEventStorage->eID == orxPHYSICS_EVENT_CONTACT_ADD)
-        {
-          b2Vec2 vPos;
-
-          /* Source can't slide and destination is static? */
-          if(!pstEventStorage->poSource->CanSlide() && (pstEventStorage->poDestination->GetType() != b2_dynamicBody))
-          {
-            /* Gets current position */
-            vPos = pstEventStorage->poSource->GetPosition();
-
-            /* Grounds it*/
-            vPos.y += 0.01f;
-
-            /* Updates it */
-            pstEventStorage->poSource->SetTransform(vPos, pstEventStorage->poSource->GetAngle());
-          }
-          /* Destination can't slide and source is static? */
-          else if(!pstEventStorage->poDestination->CanSlide() && (pstEventStorage->poSource->GetType() != b2_dynamicBody))
-          {
-            /* Gets current position */
-            vPos = pstEventStorage->poDestination->GetPosition();
-
-            /* Grounds it*/
-            vPos.y += 0.01f;
-
-            /* Updates it */
-            pstEventStorage->poDestination->SetTransform(vPos, pstEventStorage->poDestination->GetAngle());
-          }
-        }
-
-        /* Sends event */
-        orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxStructure_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxStructure_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
-
-        break;
-      }
-
-      default:
-      {
-        break;
-      }
-    }
-  }
-
-  /* Clears stored events */
-  orxLinkList_Clean(&(sstPhysics.stEventList));
-  orxBank_Clear(sstPhysics.pstEventBank);
-}
-
 /** Update (callback to register on a clock)
  * @param[in]   _pstClockInfo   Clock info of the clock used upon registration
  * @param[in]   _pContext       Context sent when registering callback to the clock
  */
 static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockInfo, void *_pContext)
 {
+  orxPHYSICS_EVENT_STORAGE *pstEventStorage;
   b2Body                   *poBody;
 
   /* Profiles */
@@ -1049,7 +984,7 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
     /* For all passed cycles */
     for(orxU32 i = 0; i < u32StepsClamped; i++)
     {
-      orxPhysics_Box2D_SingleStep(orxPhysics::sfFixedTimestep);
+      sstPhysics.poWorld->Step(orxPhysics::sfFixedTimestep, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
     }
 
     /* Clears forces */
@@ -1068,7 +1003,67 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
         orxPhysics_ApplySimulationResult((orxPHYSICS_BODY *)poBody);
       }
     }
+
+    /* For all stored events */
+    for(pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetFirst(&(sstPhysics.stEventList));
+        pstEventStorage != orxNULL;
+        pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetNext(&(pstEventStorage->stNode)))
+    {
+      /* Depending on type */
+      switch(pstEventStorage->eID)
+      {
+        case orxPHYSICS_EVENT_CONTACT_ADD:
+        case orxPHYSICS_EVENT_CONTACT_REMOVE:
+        {
+          /* New contact? */
+          if(pstEventStorage->eID == orxPHYSICS_EVENT_CONTACT_ADD)
+          {
+            b2Vec2 vPos;
+
+            /* Source can't slide and destination is static? */
+            if(!pstEventStorage->poSource->CanSlide() && (pstEventStorage->poDestination->GetType() != b2_dynamicBody))
+            {
+              /* Gets current position */
+              vPos = pstEventStorage->poSource->GetPosition();
+
+              /* Grounds it*/
+              vPos.y += 0.01f;
+
+              /* Updates it */
+              pstEventStorage->poSource->SetTransform(vPos, pstEventStorage->poSource->GetAngle());
+            }
+            /* Destination can't slide and source is static? */
+            else if(!pstEventStorage->poDestination->CanSlide() && (pstEventStorage->poSource->GetType() != b2_dynamicBody))
+            {
+              /* Gets current position */
+              vPos = pstEventStorage->poDestination->GetPosition();
+
+              /* Grounds it*/
+              vPos.y += 0.01f;
+
+              /* Updates it */
+              pstEventStorage->poDestination->SetTransform(vPos, pstEventStorage->poDestination->GetAngle());
+            }
+          }
+
+          /* Sends event */
+          orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxStructure_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxStructure_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
+
+          break;
+        }
+
+        default:
+        {
+          break;
+        }
+      }
+    }
+
+    /* Clears stored events */
+    orxLinkList_Clean(&(sstPhysics.stEventList));
+    orxBank_Clear(sstPhysics.pstEventBank);
   }
+
 
   /* Profiles */
   orxPROFILER_POP_MARKER();
