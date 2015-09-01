@@ -73,7 +73,9 @@ namespace orxPhysics
   static const orxU32   su32DefaultIterations   = 10;
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
-  static const orxFLOAT sfMaxDT                 = orx2F(1.0f / 30.0f);
+  static const orxFLOAT sfFixedTimestep         = orx2F(1.0f / 60.0f);
+  static const orxU32   su32MaxSteps            = 5;
+  static const orxFLOAT sfSmallesParticleRadius = orx2F(0.04f);
 }
 
 
@@ -126,16 +128,19 @@ public:
  */
 typedef struct __orxPHYSICS_STATIC_t
 {
-  orxU32                      u32Flags;           /**< Control flags */
-  orxU32                      u32Iterations;      /**< Simulation iterations per step */
-  orxFLOAT                    fDimensionRatio;    /**< Dimension ratio */
-  orxFLOAT                    fRecDimensionRatio; /**< Reciprocal dimension ratio */
-  orxFLOAT                    fLastDT;            /**< Last DT */
-  orxLINKLIST                 stEventList;        /**< Event link list */
-  orxBANK                    *pstEventBank;       /**< Event bank */
-  b2World                    *poWorld;            /**< World */
-  orxPhysicsContactListener  *poContactListener;  /**< Contact listener */
-  orxHASHTABLE               *pstParticleSystems; /**< Particle System Hashtable*/
+  orxU32                      u32Flags;              /**< Control flags */
+  orxU32                      u32Iterations;         /**< Simulation iterations per step */
+  orxU32                      u32ParticleIterations; /**< Particule iterations per step */
+  orxFLOAT                    fDimensionRatio;       /**< Dimension ratio */
+  orxFLOAT                    fRecDimensionRatio;    /**< Reciprocal dimension ratio */
+  orxLINKLIST                 stEventList;           /**< Event link list */
+  orxBANK                    *pstEventBank;          /**< Event bank */
+  b2World                    *poWorld;               /**< World */
+  orxPhysicsContactListener  *poContactListener;     /**< Contact listener */
+  orxHASHTABLE               *pstParticleSystems;    /**< Particle System Hashtable*/
+
+  orxFLOAT                    fFixedTimestepAccumulatorRatio;
+  orxFLOAT                    fFixedTimestepAccumulator;
 
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
@@ -841,13 +846,78 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   return;
 }
 
+static void orxFASTCALL orxPhysics_Box2D_SingleStep(orxFLOAT _fDT)
+{
+  orxPHYSICS_EVENT_STORAGE *pstEventStorage;
+
+  sstPhysics.poWorld->Step(_fDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+
+  /* For all stored events */
+  for(pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetFirst(&(sstPhysics.stEventList));
+      pstEventStorage != orxNULL;
+      pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetNext(&(pstEventStorage->stNode)))
+  {
+    /* Depending on type */
+    switch(pstEventStorage->eID)
+    {
+      case orxPHYSICS_EVENT_CONTACT_ADD:
+      case orxPHYSICS_EVENT_CONTACT_REMOVE:
+      {
+        /* New contact? */
+        if(pstEventStorage->eID == orxPHYSICS_EVENT_CONTACT_ADD)
+        {
+          b2Vec2 vPos;
+
+          /* Source can't slide and destination is static? */
+          if(!pstEventStorage->poSource->CanSlide() && (pstEventStorage->poDestination->GetType() != b2_dynamicBody))
+          {
+            /* Gets current position */
+            vPos = pstEventStorage->poSource->GetPosition();
+
+            /* Grounds it*/
+            vPos.y += 0.01f;
+
+            /* Updates it */
+            pstEventStorage->poSource->SetTransform(vPos, pstEventStorage->poSource->GetAngle());
+          }
+          /* Destination can't slide and source is static? */
+          else if(!pstEventStorage->poDestination->CanSlide() && (pstEventStorage->poSource->GetType() != b2_dynamicBody))
+          {
+            /* Gets current position */
+            vPos = pstEventStorage->poDestination->GetPosition();
+
+            /* Grounds it*/
+            vPos.y += 0.01f;
+
+            /* Updates it */
+            pstEventStorage->poDestination->SetTransform(vPos, pstEventStorage->poDestination->GetAngle());
+          }
+        }
+
+        /* Sends event */
+        orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxStructure_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxStructure_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
+
+        break;
+      }
+
+      default:
+      {
+        break;
+      }
+    }
+  }
+
+  /* Clears stored events */
+  orxLinkList_Clean(&(sstPhysics.stEventList));
+  orxBank_Clear(sstPhysics.pstEventBank);
+}
+
 /** Update (callback to register on a clock)
  * @param[in]   _pstClockInfo   Clock info of the clock used upon registration
  * @param[in]   _pContext       Context sent when registering callback to the clock
  */
 static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockInfo, void *_pContext)
 {
-  orxPHYSICS_EVENT_STORAGE *pstEventStorage;
   b2Body                   *poBody;
 
   /* Profiles */
@@ -954,19 +1024,33 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
   if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_ENABLED))
   {
     orxFLOAT fDT;
+    orxU32 u32Steps, u32StepsClamped;
 
-    /* Stores DT */
-    sstPhysics.fLastDT = _pstClockInfo->fDT;
+    /* Accumulate time */
+    sstPhysics.fFixedTimestepAccumulator += _pstClockInfo->fDT;
 
-    /* For all passed cycles */
-    for(fDT = _pstClockInfo->fDT; fDT > orxPhysics::sfMaxDT; fDT -= orxPhysics::sfMaxDT)
+    /* Compute number of steps */
+    u32Steps = orxMath_Floor(sstPhysics.fFixedTimestepAccumulator / orxPhysics::sfFixedTimestep);
+
+    if(u32Steps > 0)
     {
-      /* Updates world simulation */
-      sstPhysics.poWorld->Step(orxPhysics::sfMaxDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1);
+      sstPhysics.fFixedTimestepAccumulator -= u32Steps * orxPhysics::sfFixedTimestep;
     }
 
-    /* Updates last step of world simulation */
-    sstPhysics.poWorld->Step(fDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1);
+    /* Accumulator must have a value lesser than the fixed time step */
+    orxASSERT(sstPhysics.fFixedTimestepAccumulator < orxPhysics::sfFixedTimestep + orxMATH_KF_EPSILON);
+
+    /* Update fFixedTimestepAccumulatorRatio */
+    sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fFixedTimestepAccumulator / orxPhysics::sfFixedTimestep;
+
+    /* Clamp steps */
+    u32StepsClamped = orxMIN(u32Steps, orxPhysics::su32MaxSteps);
+
+    /* For all passed cycles */
+    for(orxU32 i = 0; i < u32StepsClamped; i++)
+    {
+      orxPhysics_Box2D_SingleStep(orxPhysics::sfFixedTimestep);
+    }
 
     /* Clears forces */
     sstPhysics.poWorld->ClearForces();
@@ -984,65 +1068,6 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
         orxPhysics_ApplySimulationResult((orxPHYSICS_BODY *)poBody);
       }
     }
-
-    /* For all stored events */
-    for(pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetFirst(&(sstPhysics.stEventList));
-        pstEventStorage != orxNULL;
-        pstEventStorage = (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetNext(&(pstEventStorage->stNode)))
-    {
-      /* Depending on type */
-      switch(pstEventStorage->eID)
-      {
-        case orxPHYSICS_EVENT_CONTACT_ADD:
-        case orxPHYSICS_EVENT_CONTACT_REMOVE:
-        {
-          /* New contact? */
-          if(pstEventStorage->eID == orxPHYSICS_EVENT_CONTACT_ADD)
-          {
-            b2Vec2 vPos;
-
-            /* Source can't slide and destination is static? */
-            if(!pstEventStorage->poSource->CanSlide() && (pstEventStorage->poDestination->GetType() != b2_dynamicBody))
-            {
-              /* Gets current position */
-              vPos = pstEventStorage->poSource->GetPosition();
-
-              /* Grounds it*/
-              vPos.y += 0.01f;
-
-              /* Updates it */
-              pstEventStorage->poSource->SetTransform(vPos, pstEventStorage->poSource->GetAngle());
-            }
-            /* Destination can't slide and source is static? */
-            else if(!pstEventStorage->poDestination->CanSlide() && (pstEventStorage->poSource->GetType() != b2_dynamicBody))
-            {
-              /* Gets current position */
-              vPos = pstEventStorage->poDestination->GetPosition();
-
-              /* Grounds it*/
-              vPos.y += 0.01f;
-
-              /* Updates it */
-              pstEventStorage->poDestination->SetTransform(vPos, pstEventStorage->poDestination->GetAngle());
-            }
-          }
-
-          /* Sends event */
-          orxEVENT_SEND(orxEVENT_TYPE_PHYSICS, pstEventStorage->eID, orxStructure_GetOwner(orxBODY(pstEventStorage->poSource->GetUserData())), orxStructure_GetOwner(orxBODY(pstEventStorage->poDestination->GetUserData())), &(pstEventStorage->stPayload));
-
-          break;
-        }
-
-        default:
-        {
-          break;
-        }
-      }
-    }
-
-    /* Clears stored events */
-    orxLinkList_Clean(&(sstPhysics.stEventList));
-    orxBank_Clear(sstPhysics.pstEventBank);
   }
 
   /* Profiles */
@@ -1892,7 +1917,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetJointReactionForce(const o
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Gets reaction force */
-  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT);
+  vForce = poJoint->GetReactionForce(orxFLOAT_1 / orxPhysics::sfFixedTimestep);
 
   /* Updates result */
   orxVector_Set(_pvForce, orx2F(vForce.x), orx2F(vForce.y), orxFLOAT_0);
@@ -1914,7 +1939,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetJointReactionTorque(const or
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Updates result */
-  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT));
+  fResult = orx2F(poJoint->GetReactionTorque(orxFLOAT_1 / orxPhysics::sfFixedTimestep));
 
   /* Done! */
   return fResult;
@@ -3016,7 +3041,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     if(sstPhysics.poWorld != orxNULL)
     {
       orxCLOCK *pstClock;
-      orxU32    u32IterationsPerStep;
+      orxU32    u32IterationsPerStep, u32ParticleIterationsPerStep;
 
       sstPhysics.pstParticleSystems = orxHashTable_Create(orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE, orxHASHTABLE_KU32_FLAG_NONE, orxMEMORY_TYPE_PHYSICS);
 
@@ -3105,6 +3130,22 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
       {
         /* Uses default value */
         sstPhysics.u32Iterations = orxPhysics::su32DefaultIterations;
+      }
+
+      /* Gets particle iterations per step number from config */
+      u32ParticleIterationsPerStep = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_PARTICLE_ITERATIONS);
+
+      /* Valid? */
+      if(u32ParticleIterationsPerStep > 0)
+      {
+        /* Stores it */
+        sstPhysics.u32ParticleIterations = u32ParticleIterationsPerStep;
+      }
+      else
+      {
+        /* Uses default value */
+        orxFLOAT fGravity = sstPhysics.poWorld->GetGravity().Length();
+        sstPhysics.u32ParticleIterations =  b2CalculateParticleIterations(fGravity, orxPhysics::sfSmallesParticleRadius, orxPhysics::sfFixedTimestep);
       }
 
       /* Gets core clock */

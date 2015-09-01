@@ -389,6 +389,7 @@ typedef struct __orxPHYSICS_PARTICLEGROUP_t           orxPHYSICS_PARTICLEGROUP;
 #define orxPHYSICS_KZ_CONFIG_GRAVITY                  "Gravity"
 #define orxPHYSICS_KZ_CONFIG_ALLOW_SLEEP              "AllowSleep"
 #define orxPHYSICS_KZ_CONFIG_ITERATIONS               "IterationsPerStep"
+#define orxPHYSICS_KZ_CONFIG_PARTICLE_ITERATIONS      "ParticleIterationsPerStep"
 #define orxPHYSICS_KZ_CONFIG_RATIO                    "DimensionRatio"
 #define orxPHYSICS_KZ_CONFIG_SHOW_DEBUG               "ShowDebug"
 #define orxPHYSICS_KZ_CONFIG_COLLISION_FLAG_LIST      "CollisionFlagList"
