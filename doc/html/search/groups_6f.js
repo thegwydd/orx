@@ -37,6 +37,7 @@ var searchData=
   ['orxobject',['OrxObject',['../group__orx_object.html',1,'']]],
   ['orxobox',['OrxOBox',['../group__orx_o_box.html',1,'']]],
   ['orxparam',['OrxParam',['../group__orx_param.html',1,'']]],
+  ['orxparticlegroup',['OrxParticleGroup',['../group__orx_particle_group.html',1,'']]],
   ['orxphysics',['OrxPhysics',['../group__orx_physics.html',1,'']]],
   ['orxplugin',['OrxPlugin',['../group__orx_plugin.html',1,'']]],
   ['orxprofiler',['OrxProfiler',['../group__orx_profiler.html',1,'']]],

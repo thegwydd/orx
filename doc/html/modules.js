@@ -37,6 +37,7 @@ var modules =
     [ "OrxOBox", "group__orx_o_box.html", "group__orx_o_box" ],
     [ "OrxObject", "group__orx_object.html", "group__orx_object" ],
     [ "OrxParam", "group__orx_param.html", "group__orx_param" ],
+    [ "OrxParticleGroup", "group__orx_particle_group.html", "group__orx_particle_group" ],
     [ "OrxPhysics", "group__orx_physics.html", "group__orx_physics" ],
     [ "OrxPlugin", "group__orx_plugin.html", "group__orx_plugin" ],
     [ "OrxProfiler", "group__orx_profiler.html", "group__orx_profiler" ],

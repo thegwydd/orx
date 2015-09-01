@@ -12,6 +12,7 @@ var orx_structure_8h =
     [ "orxFXPOINTER", "orx_structure_8h.html#gae81b19ba4b0a8a103d08e9da42f9bb3a", null ],
     [ "orxGRAPHIC", "orx_structure_8h.html#ga1dcd098a8c0a2cac68c23aa725fb4919", null ],
     [ "orxOBJECT", "orx_structure_8h.html#ga197e66bf3102a9e7550514f287738bae", null ],
+    [ "orxPARTICLEGROUP", "orx_structure_8h.html#ga0498db6f358c0495234fb70b7b35aa60", null ],
     [ "orxSHADER", "orx_structure_8h.html#ga4bfcd9340edee123c745f73a86fc1394", null ],
     [ "orxSHADERPOINTER", "orx_structure_8h.html#ga0945ea6370b07ffaffd1de03801b188b", null ],
     [ "orxSOUND", "orx_structure_8h.html#ga2f6c8e595aae619574bfd9e00b40c994", null ],
@@ -39,6 +40,7 @@ var orx_structure_8h =
     [ "orxSTRUCTURE_ID", "orx_structure_8h.html#ga559293f09cd4d21743241cc32350b320", [
       [ "orxSTRUCTURE_ID_ANIMPOINTER", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320a617d8f5d855cadadc71b5536a54ae39d", null ],
       [ "orxSTRUCTURE_ID_BODY", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320aa26fed6e49b5d10e79690f547bbe0fe6", null ],
+      [ "orxSTRUCTURE_ID_PARTICLEGROUP", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320a657811f0cd43db1e4c44e99c91e469ac", null ],
       [ "orxSTRUCTURE_ID_CLOCK", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320a7dcf15ce5e61a8542722bd48d4aeedca", null ],
       [ "orxSTRUCTURE_ID_FRAME", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320a845d86166defbdf540347307a9ec4422", null ],
       [ "orxSTRUCTURE_ID_FXPOINTER", "orx_structure_8h.html#gga559293f09cd4d21743241cc32350b320a0dafce351a48bcb315a9cbb95dc95e6b", null ],

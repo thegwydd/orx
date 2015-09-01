@@ -40,7 +40,7 @@ var searchData=
   ['fphi',['fPhi',['../structorx_v_e_c_t_o_r.html#aae1449dbf6d2bcd9ad6eb610cba1f02c',1,'orxVECTOR']]],
   ['fpressure',['fPressure',['../structorx_s_y_s_t_e_m___e_v_e_n_t___p_a_y_l_o_a_d.html#ac17e89ac7eaa0c881ddd923f4e1882e0',1,'orxSYSTEM_EVENT_PAYLOAD']]],
   ['fr',['fR',['../structorx_v_e_c_t_o_r.html#a1ebe368a7adea3a1bb6195d19116f5cc',1,'orxVECTOR']]],
-  ['fradius',['fRadius',['../structorx_b_o_d_y___p_a_r_t___d_e_f.html#adc5836790791c559495209f647d14b88',1,'orxBODY_PART_DEF']]],
+  ['fradius',['fRadius',['../structorx_b_o_d_y___p_a_r_t___d_e_f.html#adc5836790791c559495209f647d14b88',1,'orxBODY_PART_DEF::fRadius()'],['../structorx_p_a_r_t_i_c_l_e_g_r_o_u_p___s_h_a_p_e___d_e_f.html#af91596985284f62dd43707d2d3b0c8a9',1,'orxPARTICLEGROUP_SHAPE_DEF::fRadius()']]],
   ['frepeatx',['fRepeatX',['../structorx_d_i_s_p_l_a_y___t_r_a_n_s_f_o_r_m.html#a4ba0f2b96592334b5021588e4f7d0a72',1,'orxDISPLAY_TRANSFORM']]],
   ['frepeaty',['fRepeatY',['../structorx_d_i_s_p_l_a_y___t_r_a_n_s_f_o_r_m.html#a144f988cdf6844f63cbc219180af1c84',1,'orxDISPLAY_TRANSFORM']]],
   ['frestitution',['fRestitution',['../structorx_b_o_d_y___p_a_r_t___d_e_f.html#a7c9d1ccc9354fa4a4705519898f82e96',1,'orxBODY_PART_DEF']]],

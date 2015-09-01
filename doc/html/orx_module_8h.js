@@ -6,6 +6,7 @@ var orx_module_8h =
       [ "orxMODULE_ID_ANIMSET", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708a630266ee63f72633b9e8b6602687fcce", null ],
       [ "orxMODULE_ID_BANK", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708ae2d3a393475efd251c83b65f71c4e442", null ],
       [ "orxMODULE_ID_BODY", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708a155d8c7ad1cc4604506c0e913d2a783c", null ],
+      [ "orxMODULE_ID_PARTICLEGROUP", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708ad0877bd002a6e746168432e9cef29995", null ],
       [ "orxMODULE_ID_CAMERA", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708a4c935f90370ec12906a84c9944742fd2", null ],
       [ "orxMODULE_ID_CLOCK", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708ac31f4edc42bb810bb8a98dbfdf34938c", null ],
       [ "orxMODULE_ID_COMMAND", "orx_module_8h.html#ggada33eee351097708b92f32d0c5972708ae550ab5ac0eec3180237bd7836f38d06", null ],
