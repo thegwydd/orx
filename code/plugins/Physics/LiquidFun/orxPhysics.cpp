@@ -133,6 +133,7 @@ typedef struct __orxPHYSICS_STATIC_t
   orxU32                      u32ParticleIterations; /**< Particule iterations per step */
   orxFLOAT                    fDimensionRatio;       /**< Dimension ratio */
   orxFLOAT                    fRecDimensionRatio;    /**< Reciprocal dimension ratio */
+  orxFLOAT                    fLastDT;               /**< Last DT */
   orxLINKLIST                 stEventList;           /**< Event link list */
   orxBANK                    *pstEventBank;          /**< Event bank */
   b2World                    *poWorld;               /**< World */
@@ -961,6 +962,9 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
     orxFLOAT fDT;
     orxU32 u32Steps, u32StepsClamped;
 
+    /* Stores DT */
+    sstPhysics.fLastDT = _pstClockInfo->fDT;
+
     /* Accumulate time */
     sstPhysics.fFixedTimestepAccumulator += _pstClockInfo->fDT;
 
@@ -1063,7 +1067,6 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
     orxLinkList_Clean(&(sstPhysics.stEventList));
     orxBank_Clear(sstPhysics.pstEventBank);
   }
-
 
   /* Profiles */
   orxPROFILER_POP_MARKER();
@@ -1912,7 +1915,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetJointReactionForce(const o
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Gets reaction force */
-  vForce = poJoint->GetReactionForce(orxFLOAT_1 / orxPhysics::sfFixedTimestep);
+  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfFixedTimestep);
 
   /* Updates result */
   orxVector_Set(_pvForce, orx2F(vForce.x), orx2F(vForce.y), orxFLOAT_0);
@@ -1934,7 +1937,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetJointReactionTorque(const or
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Updates result */
-  fResult = orx2F(poJoint->GetReactionTorque(orxFLOAT_1 / orxPhysics::sfFixedTimestep));
+  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfFixedTimestep));
 
   /* Done! */
   return fResult;
