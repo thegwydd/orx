@@ -73,7 +73,7 @@
 #define orxBODY_PART_DEF_KU32_FLAG_EDGE               0x00000008  /**< Edge body part def flag */
 #define orxBODY_PART_DEF_KU32_FLAG_CHAIN              0x00000010  /**< Chain body part def flag */
 
-#define orxBODY_PART_DEF_KU32_MASK_TYPE               0x00000007 /**< Type body part def mask */
+#define orxBODY_PART_DEF_KU32_MASK_TYPE               0x0000001F /**< Type body part def mask */
 
 #define orxBODY_PART_DEF_KU32_FLAG_SOLID              0x10000000  /**< Solid body part def flag */
 
