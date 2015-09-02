@@ -166,12 +166,12 @@ static orxPHYSICS_STATIC sstPhysics;
  * Private functions                                                       *
  ***************************************************************************/
 
-void *orxPhysics_Box2D_Allocate(int32 _iSize, void* callbackData)
+void *orxPhysics_LiquidFun_Allocate(int32 _iSize, void* callbackData)
 {
   return orxMemory_Allocate((orxU32)_iSize, orxMEMORY_TYPE_PHYSICS);
 }
 
-void orxPhysics_Box2D_Free(void *_pMem, void* callbackData)
+void orxPhysics_LiquidFun_Free(void *_pMem, void* callbackData)
 {
   orxMemory_Free(_pMem);
 }
@@ -241,7 +241,7 @@ public:
   orxU16      u16CheckMask;
 };
 
-static void orxFASTCALL orxPhysics_Box2D_SendContactEvent(b2Contact *_poContact, orxPHYSICS_EVENT _eEventID)
+static void orxFASTCALL orxPhysics_LiquidFun_SendContactEvent(b2Contact *_poContact, orxPHYSICS_EVENT _eEventID)
 {
   orxBODY_PART             *pstSourceBodyPart, *pstDestinationBodyPart;
 
@@ -331,7 +331,7 @@ static void orxFASTCALL orxPhysics_Box2D_SendContactEvent(b2Contact *_poContact,
 void orxPhysicsContactListener::BeginContact(b2Contact *_poContact)
 {
   /* Sends contact event */
-  orxPhysics_Box2D_SendContactEvent(_poContact, orxPHYSICS_EVENT_CONTACT_ADD);
+  orxPhysics_LiquidFun_SendContactEvent(_poContact, orxPHYSICS_EVENT_CONTACT_ADD);
 
   return;
 }
@@ -339,7 +339,7 @@ void orxPhysicsContactListener::BeginContact(b2Contact *_poContact)
 void orxPhysicsContactListener::EndContact(b2Contact *_poContact)
 {
   /* Sends contact event */
-  orxPhysics_Box2D_SendContactEvent(_poContact, orxPHYSICS_EVENT_CONTACT_REMOVE);
+  orxPhysics_LiquidFun_SendContactEvent(_poContact, orxPHYSICS_EVENT_CONTACT_REMOVE);
 
   return;
 }
@@ -715,7 +715,7 @@ void orxPhysicsDebugDraw::DrawTransform(const b2Transform &_rstTransform)
   return;
 }
 
-static orxSTATUS orxFASTCALL orxPhysics_Box2D_EventHandler(const orxEVENT *_pstEvent)
+static orxSTATUS orxFASTCALL orxPhysics_LiquidFun_EventHandler(const orxEVENT *_pstEvent)
 {
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
@@ -852,7 +852,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
  * @param[in]   _pstClockInfo   Clock info of the clock used upon registration
  * @param[in]   _pContext       Context sent when registering callback to the clock
  */
-static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockInfo, void *_pContext)
+static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClockInfo, void *_pContext)
 {
   orxPHYSICS_EVENT_STORAGE *pstEventStorage;
   b2Body                   *poBody;
@@ -1093,7 +1093,7 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
   return;
 }
 
-extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_Box2D_CreateBody(const orxHANDLE _hUserData, const orxBODY_DEF *_pstBodyDef)
+extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const orxHANDLE _hUserData, const orxBODY_DEF *_pstBodyDef)
 {
   b2Body     *poResult = 0;
   b2BodyDef   stBodyDef;
@@ -1166,7 +1166,7 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_Box2D_CreateBody(const orxHAN
   return (orxPHYSICS_BODY *)poResult;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_DeleteBody(orxPHYSICS_BODY *_pstBody)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteBody(orxPHYSICS_BODY *_pstBody)
 {
   orxPHYSICS_EVENT_STORAGE *pstEventStorage;
 
@@ -1202,7 +1202,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_DeleteBody(orxPHYSICS_BODY *_pstBod
   return;
 }
 
-extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYSICS_BODY *_pstBody, const orxHANDLE _hUserData, const orxBODY_PART_DEF *_pstBodyPartDef)
+extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_LiquidFun_CreatePart(orxPHYSICS_BODY *_pstBody, const orxHANDLE _hUserData, const orxBODY_PART_DEF *_pstBodyPartDef)
 {
   b2Body         *poBody;
   b2Fixture      *poResult = 0;
@@ -1452,7 +1452,7 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_Box2D_CreatePart(orxPHYS
   return (orxPHYSICS_BODY_PART *)poResult;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_DeletePart(orxPHYSICS_BODY_PART *_pstBodyPart)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeletePart(orxPHYSICS_BODY_PART *_pstBodyPart)
 {
   b2Fixture  *poFixture;
   b2Body     *poBody;
@@ -1473,7 +1473,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_DeletePart(orxPHYSICS_BODY_PART *_p
   return;
 }
 
-extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_Box2D_CreateJoint(orxPHYSICS_BODY *_pstSrcBody, orxPHYSICS_BODY *_pstDstBody, const orxHANDLE _hUserData, const orxBODY_JOINT_DEF *_pstBodyJointDef)
+extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_LiquidFun_CreateJoint(orxPHYSICS_BODY *_pstSrcBody, orxPHYSICS_BODY *_pstDstBody, const orxHANDLE _hUserData, const orxBODY_JOINT_DEF *_pstBodyJointDef)
 {
   b2Joint            *poResult = 0;
   orxBOOL             bSuccess = orxTRUE;
@@ -1826,7 +1826,7 @@ extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_Box2D_CreateJoint(orxPH
   return (orxPHYSICS_BODY_JOINT *)poResult;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_DeleteJoint(orxPHYSICS_BODY_JOINT *_pstBodyJoint)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteJoint(orxPHYSICS_BODY_JOINT *_pstBodyJoint)
 {
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
@@ -1838,7 +1838,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_DeleteJoint(orxPHYSICS_BODY_JOINT *
   return;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_EnableMotor(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxBOOL _bEnable)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_EnableMotor(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxBOOL _bEnable)
 {
   b2Joint *poJoint;
 
@@ -1865,7 +1865,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_EnableMotor(orxPHYSICS_BODY_JOINT *
   return;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_SetJointMotorSpeed(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxFLOAT _fSpeed)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_SetJointMotorSpeed(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxFLOAT _fSpeed)
 {
   b2Joint *poJoint;
 
@@ -1892,7 +1892,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_SetJointMotorSpeed(orxPHYSICS_BODY_
   return;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_SetJointMaxMotorTorque(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxFLOAT _fMaxTorque)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_SetJointMaxMotorTorque(orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxFLOAT _fMaxTorque)
 {
   b2Joint *poJoint;
 
@@ -1919,7 +1919,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_SetJointMaxMotorTorque(orxPHYSICS_B
   return;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetJointReactionForce(const orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxVECTOR *_pvForce)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetJointReactionForce(const orxPHYSICS_BODY_JOINT *_pstBodyJoint, orxVECTOR *_pvForce)
 {
   const b2Joint  *poJoint;
   b2Vec2          vForce;
@@ -1942,7 +1942,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetJointReactionForce(const o
   return _pvForce;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetJointReactionTorque(const orxPHYSICS_BODY_JOINT *_pstBodyJoint)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetJointReactionTorque(const orxPHYSICS_BODY_JOINT *_pstBodyJoint)
 {
   const b2Joint  *poJoint;
   orxFLOAT        fResult;
@@ -1961,7 +1961,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetJointReactionTorque(const or
   return fResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPosition(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition)
 {
   b2Body   *poBody;
   b2Vec2    vPosition;
@@ -1995,7 +1995,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPosition(orxPHYSICS_BODY *_
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetRotation(orxPHYSICS_BODY *_pstBody, orxFLOAT _fRotation)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BODY *_pstBody, orxFLOAT _fRotation)
 {
   b2Body   *poBody;
   float32   fRotation;
@@ -2025,7 +2025,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetRotation(orxPHYSICS_BODY *_
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetSpeed(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvSpeed)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetSpeed(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvSpeed)
 {
   b2Body   *poBody;
   b2Vec2    vSpeed;
@@ -2059,7 +2059,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetSpeed(orxPHYSICS_BODY *_pst
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetAngularVelocity(orxPHYSICS_BODY *_pstBody, orxFLOAT _fVelocity)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetAngularVelocity(orxPHYSICS_BODY *_pstBody, orxFLOAT _fVelocity)
 {
   b2Body   *poBody;
   float32   fAngularVelocity;
@@ -2089,7 +2089,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetAngularVelocity(orxPHYSICS_
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetCustomGravity(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvCustomGravity)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetCustomGravity(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvCustomGravity)
 {
   b2Body       *poBody;
   const b2Vec2 *pvCustomGravity;
@@ -2140,7 +2140,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetCustomGravity(orxPHYSICS_BO
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetFixedRotation(orxPHYSICS_BODY * _pstBody, orxBOOL _bFixed)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetFixedRotation(orxPHYSICS_BODY * _pstBody, orxBOOL _bFixed)
 {
   b2Body   *poBody;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
@@ -2159,7 +2159,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetFixedRotation(orxPHYSICS_BO
   return eResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetPosition(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvPosition)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetPosition(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvPosition)
 {
   b2Body     *poBody;
   b2Vec2      vPosition;
@@ -2185,7 +2185,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetPosition(const orxPHYSICS_
   return pvResult;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetRotation(const orxPHYSICS_BODY *_pstBody)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetRotation(const orxPHYSICS_BODY *_pstBody)
 {
   b2Body   *poBody;
   orxFLOAT  fResult;
@@ -2204,7 +2204,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetRotation(const orxPHYSICS_BO
   return fResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetSpeed(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvSpeed)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetSpeed(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvSpeed)
 {
   b2Body   *poBody;
   b2Vec2    vSpeed;
@@ -2231,7 +2231,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetSpeed(const orxPHYSICS_BOD
   return pvResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetSpeedAtWorldPosition(const orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition, orxVECTOR *_pvSpeed)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetSpeedAtWorldPosition(const orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition, orxVECTOR *_pvSpeed)
 {
   b2Body   *poBody;
   b2Vec2    vSpeed;
@@ -2259,7 +2259,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetSpeedAtWorldPosition(const
   return pvResult;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetAngularVelocity(const orxPHYSICS_BODY *_pstBody)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetAngularVelocity(const orxPHYSICS_BODY *_pstBody)
 {
   b2Body   *poBody;
   orxFLOAT  fResult;
@@ -2278,7 +2278,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetAngularVelocity(const orxPHY
   return fResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetCustomGravity(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvCustomGravity)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetCustomGravity(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvCustomGravity)
 {
   b2Body       *poBody;
   const b2Vec2 *pvGravity;
@@ -2312,7 +2312,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetCustomGravity(const orxPHY
   return pvResult;
 }
 
-extern "C" orxBOOL orxFASTCALL orxPhysics_Box2D_IsFixedRotation(const orxPHYSICS_BODY * _pstBody)
+extern "C" orxBOOL orxFASTCALL orxPhysics_LiquidFun_IsFixedRotation(const orxPHYSICS_BODY * _pstBody)
 {
   b2Body   *poBody;
   orxBOOL   bResult;
@@ -2331,7 +2331,7 @@ extern "C" orxBOOL orxFASTCALL orxPhysics_Box2D_IsFixedRotation(const orxPHYSICS
   return bResult;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetMass(const orxPHYSICS_BODY *_pstBody)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetMass(const orxPHYSICS_BODY *_pstBody)
 {
   b2Body     *poBody;
   orxFLOAT    fResult;
@@ -2350,7 +2350,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetMass(const orxPHYSICS_BODY *
   return fResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetMassCenter(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvMassCenter)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetMassCenter(const orxPHYSICS_BODY *_pstBody, orxVECTOR *_pvMassCenter)
 {
   b2Body     *poBody;
   b2Vec2      vMassCenter;
@@ -2379,7 +2379,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetMassCenter(const orxPHYSIC
   return pvResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetLinearDamping(orxPHYSICS_BODY *_pstBody, orxFLOAT _fDamping)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetLinearDamping(orxPHYSICS_BODY *_pstBody, orxFLOAT _fDamping)
 {
   b2Body   *poBody;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
@@ -2398,7 +2398,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetLinearDamping(orxPHYSICS_BO
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetAngularDamping(orxPHYSICS_BODY *_pstBody, orxFLOAT _fDamping)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetAngularDamping(orxPHYSICS_BODY *_pstBody, orxFLOAT _fDamping)
 {
   b2Body   *poBody;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
@@ -2417,7 +2417,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetAngularDamping(orxPHYSICS_B
   return eResult;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetLinearDamping(const orxPHYSICS_BODY *_pstBody)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetLinearDamping(const orxPHYSICS_BODY *_pstBody)
 {
   b2Body   *poBody;
   orxFLOAT  fResult;
@@ -2436,7 +2436,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetLinearDamping(const orxPHYSI
   return fResult;
 }
 
-extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetAngularDamping(const orxPHYSICS_BODY *_pstBody)
+extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetAngularDamping(const orxPHYSICS_BODY *_pstBody)
 {
   b2Body   *poBody;
   orxFLOAT  fResult;
@@ -2455,7 +2455,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetAngularDamping(const orxPHYS
   return fResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyTorque(orxPHYSICS_BODY *_pstBody, orxFLOAT _fTorque)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyTorque(orxPHYSICS_BODY *_pstBody, orxFLOAT _fTorque)
 {
   b2Body     *poBody;
   orxOBJECT  *pstObject;
@@ -2504,7 +2504,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyTorque(orxPHYSICS_BODY *_
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyForce(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvForce, const orxVECTOR *_pvPoint)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyForce(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvForce, const orxVECTOR *_pvPoint)
 {
   b2Body     *poBody;
   orxOBJECT  *pstObject;
@@ -2569,7 +2569,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyForce(orxPHYSICS_BODY *_p
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyImpulse(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvImpulse, const orxVECTOR *_pvPoint)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyImpulse(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvImpulse, const orxVECTOR *_pvPoint)
 {
   b2Body     *poBody;
   orxOBJECT  *pstObject;
@@ -2634,7 +2634,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_ApplyImpulse(orxPHYSICS_BODY *
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartSelfFlags(orxPHYSICS_BODY_PART *_pstBodyPart, orxU16 _u16SelfFlags)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPartSelfFlags(orxPHYSICS_BODY_PART *_pstBodyPart, orxU16 _u16SelfFlags)
 {
   b2Fixture  *poFixture;
   b2Filter    oFilter;
@@ -2660,7 +2660,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartSelfFlags(orxPHYSICS_BO
   return eResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartCheckMask(orxPHYSICS_BODY_PART *_pstBodyPart, orxU16 _u16CheckMask)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPartCheckMask(orxPHYSICS_BODY_PART *_pstBodyPart, orxU16 _u16CheckMask)
 {
   b2Fixture  *poFixture;
   b2Filter    oFilter;
@@ -2686,7 +2686,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartCheckMask(orxPHYSICS_BO
   return eResult;
 }
 
-extern "C" orxU16 orxFASTCALL orxPhysics_Box2D_GetPartSelfFlags(const orxPHYSICS_BODY_PART *_pstBodyPart)
+extern "C" orxU16 orxFASTCALL orxPhysics_LiquidFun_GetPartSelfFlags(const orxPHYSICS_BODY_PART *_pstBodyPart)
 {
   const b2Fixture  *poFixture;
   orxU16            u16Result;
@@ -2705,7 +2705,7 @@ extern "C" orxU16 orxFASTCALL orxPhysics_Box2D_GetPartSelfFlags(const orxPHYSICS
   return u16Result;
 }
 
-extern "C" orxU16 orxFASTCALL orxPhysics_Box2D_GetPartCheckMask(const orxPHYSICS_BODY_PART *_pstBodyPart)
+extern "C" orxU16 orxFASTCALL orxPhysics_LiquidFun_GetPartCheckMask(const orxPHYSICS_BODY_PART *_pstBodyPart)
 {
   const b2Fixture  *poFixture;
   orxU16            u16Result;
@@ -2724,7 +2724,7 @@ extern "C" orxU16 orxFASTCALL orxPhysics_Box2D_GetPartCheckMask(const orxPHYSICS
   return u16Result;
 }
 
-extern "C" orxBOOL orxFASTCALL orxPhysics_Box2D_IsPartSolid(const orxPHYSICS_BODY_PART *_pstBodyPart)
+extern "C" orxBOOL orxFASTCALL orxPhysics_LiquidFun_IsPartSolid(const orxPHYSICS_BODY_PART *_pstBodyPart)
 {
   b2Fixture  *poFixture;
   orxBOOL     bResult;
@@ -2743,7 +2743,7 @@ extern "C" orxBOOL orxFASTCALL orxPhysics_Box2D_IsPartSolid(const orxPHYSICS_BOD
   return bResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartSolid(orxPHYSICS_BODY_PART *_pstBodyPart, orxBOOL _bSolid)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPartSolid(orxPHYSICS_BODY_PART *_pstBodyPart, orxBOOL _bSolid)
 {
   b2Fixture  *poFixture;
   orxSTATUS   eResult = orxSTATUS_SUCCESS;
@@ -2762,7 +2762,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetPartSolid(orxPHYSICS_BODY_P
   return eResult;
 }
 
-extern "C" orxHANDLE orxFASTCALL orxPhysics_Box2D_Raycast(const orxVECTOR *_pvStart, const orxVECTOR *_pvEnd, orxU16 _u16SelfFlags, orxU16 _u16CheckMask, orxBOOL _bEarlyExit, orxVECTOR *_pvContact, orxVECTOR *_pvNormal)
+extern "C" orxHANDLE orxFASTCALL orxPhysics_LiquidFun_Raycast(const orxVECTOR *_pvStart, const orxVECTOR *_pvEnd, orxU16 _u16SelfFlags, orxU16 _u16CheckMask, orxBOOL _bEarlyExit, orxVECTOR *_pvContact, orxVECTOR *_pvNormal)
 {
   b2Vec2          vStart, vEnd;
   RayCastCallback oRaycastCallback;
@@ -2812,7 +2812,7 @@ extern "C" orxHANDLE orxFASTCALL orxPhysics_Box2D_Raycast(const orxVECTOR *_pvSt
   return hResult;
 }
 
-extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticleGroup(const orxHANDLE _hUserData, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef)
+extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_LiquidFun_CreateParticleGroup(const orxHANDLE _hUserData, const orxPARTICLEGROUP_DEF *_pstParticleGroupDef)
 {
   b2ParticleGroup     *poResult = 0;
   b2ParticleGroupDef   stParticleGroupDef;
@@ -2949,7 +2949,7 @@ extern "C" orxPHYSICS_PARTICLEGROUP *orxFASTCALL orxPhysics_Box2D_CreateParticle
   return (orxPHYSICS_PARTICLEGROUP *)poResult;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_EnableSimulation(orxBOOL _bEnable)
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_EnableSimulation(orxBOOL _bEnable)
 {
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
@@ -2970,7 +2970,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_EnableSimulation(orxBOOL _bEnable)
   return;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetGravity(const orxVECTOR *_pvGravity)
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetGravity(const orxVECTOR *_pvGravity)
 {
   b2Vec2    vGravity;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
@@ -2989,7 +2989,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_SetGravity(const orxVECTOR *_p
   return eResult;
 }
 
-extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetGravity(orxVECTOR *_pvGravity)
+extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetGravity(orxVECTOR *_pvGravity)
 {
   b2Vec2      vGravity;
   orxVECTOR  *pvResult = _pvGravity;
@@ -3006,7 +3006,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetGravity(orxVECTOR *_pvGrav
   return pvResult;
 }
 
-extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
+extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
 {
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
@@ -3025,7 +3025,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
 
     /* Sets custom memory alloc/free */
-    b2SetAllocFreeCallbacks(orxPhysics_Box2D_Allocate, orxPhysics_Box2D_Free, NULL);
+    b2SetAllocFreeCallbacks(orxPhysics_LiquidFun_Allocate, orxPhysics_LiquidFun_Free, NULL);
 
     /* Gets gravity & allow sleep from config */
     if(orxConfig_GetVector(orxPHYSICS_KZ_CONFIG_GRAVITY, &vGravity) == orxNULL)
@@ -3185,7 +3185,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
       if(pstClock != orxNULL)
       {
         /* Registers rendering function */
-        eResult = orxClock_Register(pstClock, orxPhysics_Box2D_Update, orxNULL, orxMODULE_ID_PHYSICS, orxCLOCK_PRIORITY_LOWER);
+        eResult = orxClock_Register(pstClock, orxPhysics_LiquidFun_Update, orxNULL, orxMODULE_ID_PHYSICS, orxCLOCK_PRIORITY_LOWER);
 
         /* Valid? */
         if(eResult != orxSTATUS_FAILURE)
@@ -3205,7 +3205,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
           sstPhysics.poWorld->SetDebugDraw(sstPhysics.poDebugDraw);
 
           /* Adds event handler */
-          orxEvent_AddHandler(orxEVENT_TYPE_RENDER, orxPhysics_Box2D_EventHandler);
+          orxEvent_AddHandler(orxEVENT_TYPE_RENDER, orxPhysics_LiquidFun_EventHandler);
 
 #endif /* orxPHYSICS_ENABLE_DEBUG_DRAW */
 
@@ -3282,7 +3282,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
   return eResult;
 }
 
-extern "C" void orxFASTCALL orxPhysics_Box2D_Exit()
+extern "C" void orxFASTCALL orxPhysics_LiquidFun_Exit()
 {
   /* Was initialized? */
   if(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY)
@@ -3310,7 +3310,7 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_Exit()
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
     /* Removes event handler */
-    orxEvent_RemoveHandler(orxEVENT_TYPE_RENDER, orxPhysics_Box2D_EventHandler);
+    orxEvent_RemoveHandler(orxEVENT_TYPE_RENDER, orxPhysics_LiquidFun_EventHandler);
 
     /* Deletes debug draw */
     delete sstPhysics.poDebugDraw;
@@ -3333,52 +3333,52 @@ extern "C" void orxFASTCALL orxPhysics_Box2D_Exit()
  ***************************************************************************/
 
 orxPLUGIN_USER_CORE_FUNCTION_START(PHYSICS);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_Init, PHYSICS, INIT);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_Exit, PHYSICS, EXIT);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetGravity, PHYSICS, SET_GRAVITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetGravity, PHYSICS, GET_GRAVITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_CreateBody, PHYSICS, CREATE_BODY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_DeleteBody, PHYSICS, DELETE_BODY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_CreatePart, PHYSICS, CREATE_PART);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_DeletePart, PHYSICS, DELETE_PART);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_CreateJoint, PHYSICS, CREATE_JOINT);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_DeleteJoint, PHYSICS, DELETE_JOINT);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetPosition, PHYSICS, SET_POSITION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetRotation, PHYSICS, SET_ROTATION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetSpeed, PHYSICS, SET_SPEED);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetAngularVelocity, PHYSICS, SET_ANGULAR_VELOCITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetCustomGravity, PHYSICS, SET_CUSTOM_GRAVITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetFixedRotation, PHYSICS, SET_FIXED_ROTATION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetPosition, PHYSICS, GET_POSITION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetRotation, PHYSICS, GET_ROTATION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetSpeed, PHYSICS, GET_SPEED);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetSpeedAtWorldPosition, PHYSICS, GET_SPEED_AT_WORLD_POSITION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetAngularVelocity, PHYSICS, GET_ANGULAR_VELOCITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetCustomGravity, PHYSICS, GET_CUSTOM_GRAVITY);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_IsFixedRotation, PHYSICS, IS_FIXED_ROTATION);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetMass, PHYSICS, GET_MASS);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetMassCenter, PHYSICS, GET_MASS_CENTER);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetLinearDamping, PHYSICS, SET_LINEAR_DAMPING);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetAngularDamping, PHYSICS, SET_ANGULAR_DAMPING);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetLinearDamping, PHYSICS, GET_LINEAR_DAMPING);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetAngularDamping, PHYSICS, GET_ANGULAR_DAMPING);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_ApplyTorque, PHYSICS, APPLY_TORQUE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_ApplyForce, PHYSICS, APPLY_FORCE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_ApplyImpulse, PHYSICS, APPLY_IMPULSE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetPartSelfFlags, PHYSICS, SET_PART_SELF_FLAGS);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetPartCheckMask, PHYSICS, SET_PART_CHECK_MASK);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetPartSelfFlags, PHYSICS, GET_PART_SELF_FLAGS);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetPartCheckMask, PHYSICS, GET_PART_CHECK_MASK);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_IsPartSolid, PHYSICS, IS_PART_SOLID);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetPartSolid, PHYSICS, SET_PART_SOLID);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_EnableMotor, PHYSICS, ENABLE_MOTOR);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetJointMotorSpeed, PHYSICS, SET_JOINT_MOTOR_SPEED);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_SetJointMaxMotorTorque, PHYSICS, SET_JOINT_MAX_MOTOR_TORQUE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetJointReactionForce, PHYSICS, GET_JOINT_REACTION_FORCE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_GetJointReactionTorque, PHYSICS, GET_JOINT_REACTION_TORQUE);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_Raycast, PHYSICS, RAYCAST);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_CreateParticleGroup, PHYSICS, CREATE_PARTICLE_GROUP);
-orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_Box2D_EnableSimulation, PHYSICS, ENABLE_SIMULATION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_Init, PHYSICS, INIT);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_Exit, PHYSICS, EXIT);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetGravity, PHYSICS, SET_GRAVITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetGravity, PHYSICS, GET_GRAVITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_CreateBody, PHYSICS, CREATE_BODY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_DeleteBody, PHYSICS, DELETE_BODY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_CreatePart, PHYSICS, CREATE_PART);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_DeletePart, PHYSICS, DELETE_PART);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_CreateJoint, PHYSICS, CREATE_JOINT);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_DeleteJoint, PHYSICS, DELETE_JOINT);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetPosition, PHYSICS, SET_POSITION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetRotation, PHYSICS, SET_ROTATION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetSpeed, PHYSICS, SET_SPEED);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetAngularVelocity, PHYSICS, SET_ANGULAR_VELOCITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetCustomGravity, PHYSICS, SET_CUSTOM_GRAVITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetFixedRotation, PHYSICS, SET_FIXED_ROTATION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetPosition, PHYSICS, GET_POSITION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetRotation, PHYSICS, GET_ROTATION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetSpeed, PHYSICS, GET_SPEED);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetSpeedAtWorldPosition, PHYSICS, GET_SPEED_AT_WORLD_POSITION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetAngularVelocity, PHYSICS, GET_ANGULAR_VELOCITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetCustomGravity, PHYSICS, GET_CUSTOM_GRAVITY);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_IsFixedRotation, PHYSICS, IS_FIXED_ROTATION);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetMass, PHYSICS, GET_MASS);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetMassCenter, PHYSICS, GET_MASS_CENTER);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetLinearDamping, PHYSICS, SET_LINEAR_DAMPING);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetAngularDamping, PHYSICS, SET_ANGULAR_DAMPING);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetLinearDamping, PHYSICS, GET_LINEAR_DAMPING);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetAngularDamping, PHYSICS, GET_ANGULAR_DAMPING);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_ApplyTorque, PHYSICS, APPLY_TORQUE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_ApplyForce, PHYSICS, APPLY_FORCE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_ApplyImpulse, PHYSICS, APPLY_IMPULSE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetPartSelfFlags, PHYSICS, SET_PART_SELF_FLAGS);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetPartCheckMask, PHYSICS, SET_PART_CHECK_MASK);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetPartSelfFlags, PHYSICS, GET_PART_SELF_FLAGS);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetPartCheckMask, PHYSICS, GET_PART_CHECK_MASK);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_IsPartSolid, PHYSICS, IS_PART_SOLID);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetPartSolid, PHYSICS, SET_PART_SOLID);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_EnableMotor, PHYSICS, ENABLE_MOTOR);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetJointMotorSpeed, PHYSICS, SET_JOINT_MOTOR_SPEED);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_SetJointMaxMotorTorque, PHYSICS, SET_JOINT_MAX_MOTOR_TORQUE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetJointReactionForce, PHYSICS, GET_JOINT_REACTION_FORCE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_GetJointReactionTorque, PHYSICS, GET_JOINT_REACTION_TORQUE);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_Raycast, PHYSICS, RAYCAST);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_CreateParticleGroup, PHYSICS, CREATE_PARTICLE_GROUP);
+orxPLUGIN_USER_CORE_FUNCTION_ADD(orxPhysics_LiquidFun_EnableSimulation, PHYSICS, ENABLE_SIMULATION);
 orxPLUGIN_USER_CORE_FUNCTION_END();
 
 
