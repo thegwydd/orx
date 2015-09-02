@@ -73,7 +73,7 @@ namespace orxPhysics
   static const orxU32   su32DefaultIterations   = 10;
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
-  static const orxFLOAT sfFixedTimestep         = orx2F(1.0f / 60.0f);
+  static const orxFLOAT sfMaxDT                 = orx2F(1.0f / 30.0f);
   static const orxU32   su32MaxSteps            = 5;
   static const orxFLOAT sfSmallesParticleRadius = orx2F(0.04f);
 }
@@ -140,6 +140,7 @@ typedef struct __orxPHYSICS_STATIC_t
   orxPhysicsContactListener  *poContactListener;     /**< Contact listener */
   orxHASHTABLE               *pstParticleSystems;    /**< Particle System Hashtable*/
 
+  orxFLOAT                    fFixedTimeStep;        /**< Fixed timestep */
   orxFLOAT                    fFixedTimestepAccumulatorRatio;
   orxFLOAT                    fFixedTimestepAccumulator;
 
@@ -960,35 +961,52 @@ static void orxFASTCALL orxPhysics_Box2D_Update(const orxCLOCK_INFO *_pstClockIn
   if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_ENABLED))
   {
     orxFLOAT fDT;
-    orxU32 u32Steps, u32StepsClamped;
 
     /* Stores DT */
     sstPhysics.fLastDT = _pstClockInfo->fDT;
 
-    /* Accumulate time */
-    sstPhysics.fFixedTimestepAccumulator += _pstClockInfo->fDT;
-
-    /* Compute number of steps */
-    u32Steps = orxMath_Floor(sstPhysics.fFixedTimestepAccumulator / orxPhysics::sfFixedTimestep);
-
-    if(u32Steps > 0)
+    /* Use fixed time step? */
+    if(sstPhysics.fFixedTimeStep)
     {
-      sstPhysics.fFixedTimestepAccumulator -= u32Steps * orxPhysics::sfFixedTimestep;
+      orxU32 u32Steps, u32StepsClamped;
+
+      /* Accumulate time */
+      sstPhysics.fFixedTimestepAccumulator += _pstClockInfo->fDT;
+
+      /* Compute number of steps */
+      u32Steps = orxMath_Floor(sstPhysics.fFixedTimestepAccumulator / sstPhysics.fFixedTimeStep);
+
+      if(u32Steps > 0)
+      {
+        sstPhysics.fFixedTimestepAccumulator -= u32Steps * sstPhysics.fFixedTimeStep;
+      }
+
+      /* Accumulator must have a value lesser than the fixed time step */
+      orxASSERT(sstPhysics.fFixedTimestepAccumulator < sstPhysics.fFixedTimeStep + orxMATH_KF_EPSILON);
+
+      /* Update fFixedTimestepAccumulatorRatio */
+      sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fFixedTimestepAccumulator / sstPhysics.fFixedTimeStep;
+
+      /* Clamp steps */
+      u32StepsClamped = orxMIN(u32Steps, orxPhysics::su32MaxSteps);
+
+      /* For all passed cycles */
+      for(orxU32 i = 0; i < u32StepsClamped; i++)
+      {
+        sstPhysics.poWorld->Step(sstPhysics.fFixedTimeStep, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+      }
     }
-
-    /* Accumulator must have a value lesser than the fixed time step */
-    orxASSERT(sstPhysics.fFixedTimestepAccumulator < orxPhysics::sfFixedTimestep + orxMATH_KF_EPSILON);
-
-    /* Update fFixedTimestepAccumulatorRatio */
-    sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fFixedTimestepAccumulator / orxPhysics::sfFixedTimestep;
-
-    /* Clamp steps */
-    u32StepsClamped = orxMIN(u32Steps, orxPhysics::su32MaxSteps);
-
-    /* For all passed cycles */
-    for(orxU32 i = 0; i < u32StepsClamped; i++)
+    else
     {
-      sstPhysics.poWorld->Step(orxPhysics::sfFixedTimestep, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+      /* For all passed cycles */
+      for(fDT = _pstClockInfo->fDT; fDT > orxPhysics::sfMaxDT; fDT -= orxPhysics::sfMaxDT)
+      {
+        /* Updates world simulation */
+        sstPhysics.poWorld->Step(orxPhysics::sfMaxDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+      }
+
+      /* Updates last step of world simulation */
+      sstPhysics.poWorld->Step(fDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
     }
 
     /* Clears forces */
@@ -1915,7 +1933,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_Box2D_GetJointReactionForce(const o
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Gets reaction force */
-  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfFixedTimestep);
+  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT);
 
   /* Updates result */
   orxVector_Set(_pvForce, orx2F(vForce.x), orx2F(vForce.y), orxFLOAT_0);
@@ -1937,7 +1955,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_Box2D_GetJointReactionTorque(const or
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Updates result */
-  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfFixedTimestep));
+  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT));
 
   /* Done! */
   return fResult;
@@ -2996,6 +3014,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
   if(!(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY))
   {
     orxFLOAT  fRatio;
+    orxU32    u32FixedTimeStepRate;
     orxVECTOR vGravity;
     b2Vec2    vWorldGravity;
 
@@ -3012,6 +3031,16 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
     if(orxConfig_GetVector(orxPHYSICS_KZ_CONFIG_GRAVITY, &vGravity) == orxNULL)
     {
       orxVector_Copy(&vGravity, &orxVECTOR_0);
+    }
+
+    /* Gets fixed timestep rate */
+    u32FixedTimeStepRate = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_FIXED_TIMESTEP_RATE);
+
+    /* Valid? */
+    if(u32FixedTimeStepRate > 0)
+    {
+      /* Sotres it */
+      sstPhysics.fFixedTimeStep = orxFLOAT_1 / orx2F(u32FixedTimeStepRate);
     }
 
     /* Gets dimension ratio */
@@ -3143,7 +3172,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_Box2D_Init()
       {
         /* Uses default value */
         orxFLOAT fGravity = sstPhysics.poWorld->GetGravity().Length();
-        sstPhysics.u32ParticleIterations =  b2CalculateParticleIterations(fGravity, orxPhysics::sfSmallesParticleRadius, orxPhysics::sfFixedTimestep);
+        sstPhysics.u32ParticleIterations =  b2CalculateParticleIterations(fGravity, orxPhysics::sfSmallesParticleRadius, sstPhysics.fFixedTimeStep ? sstPhysics.fFixedTimeStep : orxPhysics::sfMaxDT);
       }
 
       /* Gets core clock */
