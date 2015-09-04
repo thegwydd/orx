@@ -1,5 +1,7 @@
 var NAVTREEINDEX11 =
 {
+"orx_android_8h.html#ga2571fc956eb158bdd227cc4477fd5e6c":[3,0,0,6,0,19],
+"orx_android_8h.html#ga2655223eb8e84adf8378018f210c1604":[3,0,0,6,0,24],
 "orx_android_8h.html#ga311a7e9ea1448a85c65bc13f828cd97c":[3,0,0,6,0,6],
 "orx_android_8h.html#ga494e235fc601a585858e607c9cbdba6d":[3,0,0,6,0,8],
 "orx_android_8h.html#ga550ffc6e6dad9a71a4a746d72c35709a":[3,0,0,6,0,12],
@@ -247,7 +249,5 @@ var NAVTREEINDEX11 =
 "orx_clock_8h.html#ga460ad1bad34a106d35fae03a3768b4f1":[3,0,0,2,0,17],
 "orx_clock_8h.html#ga55a74c9309e565e375d1e8b2b2775b0c":[3,0,0,2,0,33],
 "orx_clock_8h.html#ga5832961aed39d20d36c74ad40d1e18a3":[3,0,0,2,0,25],
-"orx_clock_8h.html#ga5d61e2fc9dcad950bc23ff7a5525791d":[3,0,0,2,0,5],
-"orx_clock_8h.html#ga646ec2e3a995507a81f71e7ee602458e":[3,0,0,2,0,30],
-"orx_clock_8h.html#ga78eec70b53edef4982d4b69370934a49":[3,0,0,2,0,14]
+"orx_clock_8h.html#ga5d61e2fc9dcad950bc23ff7a5525791d":[3,0,0,2,0,5]
 };
