@@ -3073,7 +3073,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
 
             if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_RADIUS))
             {
-              particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS);
+              particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS) * sstPhysics.fDimensionRatio;
             }
             if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DENSITY))
             {

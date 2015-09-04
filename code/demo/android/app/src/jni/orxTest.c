@@ -76,6 +76,8 @@ static orxSTATUS orxFASTCALL Init()
   /* Registers event handler */
   orxEvent_AddHandler(orxEVENT_TYPE_PHYSICS, EventHandler);
 
+  orxParticleGroup_CreateFromConfig("ParticleGroup1");
+
   /* Done! */
   return (spstViewport && spstGenerator) ? orxSTATUS_SUCCESS : orxSTATUS_FAILURE;
 }
