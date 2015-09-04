@@ -63,8 +63,8 @@
 #define orxPHYSICS_KU32_STATIC_FLAG_NONE        0x00000000 /**< No flags */
 
 #define orxPHYSICS_KU32_STATIC_FLAG_READY       0x00000001 /**< Ready flag */
-
 #define orxPHYSICS_KU32_STATIC_FLAG_ENABLED     0x00000002 /**< Enabled flag */
+#define orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT    0x00000004 /**< Fixed DT flag */
 
 #define orxPHYSICS_KU32_STATIC_MASK_ALL         0xFFFFFFFF /**< All mask */
 
@@ -73,8 +73,7 @@ namespace orxPhysics
   static const orxU32   su32DefaultIterations   = 10;
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
-  static const orxFLOAT sfMaxDT                 = orx2F(1.0f / 30.0f);
-  static const orxU32   su32MaxSteps            = 5;
+  static const orxFLOAT sfDefaultFrequency      = orx2F(60.0f);
   static const orxFLOAT sfSmallesParticleRadius = orx2F(0.04f);
 }
 
@@ -128,25 +127,23 @@ public:
  */
 typedef struct __orxPHYSICS_STATIC_t
 {
-  orxU32                      u32Flags;              /**< Control flags */
-  orxU32                      u32Iterations;         /**< Simulation iterations per step */
-  orxU32                      u32ParticleIterations; /**< Particule iterations per step */
-  orxFLOAT                    fDimensionRatio;       /**< Dimension ratio */
-  orxFLOAT                    fRecDimensionRatio;    /**< Reciprocal dimension ratio */
-  orxFLOAT                    fLastDT;               /**< Last DT */
-  orxLINKLIST                 stEventList;           /**< Event link list */
-  orxBANK                    *pstEventBank;          /**< Event bank */
-  b2World                    *poWorld;               /**< World */
-  orxPhysicsContactListener  *poContactListener;     /**< Contact listener */
-  orxHASHTABLE               *pstParticleSystems;    /**< Particle System Hashtable*/
-
-  orxFLOAT                    fFixedTimeStep;        /**< Fixed timestep */
-  orxFLOAT                    fFixedTimestepAccumulatorRatio;
-  orxFLOAT                    fFixedTimestepAccumulator;
+  orxU32                      u32Flags;               /**< Control flags */
+  orxU32                      u32Iterations;          /**< Simulation iterations per step */
+  orxU32                      u32ParticleIterations;  /**< Particule iterations per step */
+  orxFLOAT                    fDimensionRatio;        /**< Dimension ratio */
+  orxFLOAT                    fRecDimensionRatio;     /**< Reciprocal dimension ratio */
+  orxFLOAT                    fLastDT;                /**< Last DT */
+  orxLINKLIST                 stEventList;            /**< Event link list */
+  orxBANK                    *pstEventBank;           /**< Event bank */
+  b2World                    *poWorld;                /**< World */
+  orxPhysicsContactListener  *poContactListener;      /**< Contact listener */
+  orxHASHTABLE               *pstParticleSystems;     /**< Particle System Hashtable*/
+  orxFLOAT                    fFixedDT;               /**< Fixed DT */
+  orxFLOAT                    fDTAccumulator;         /**< DT accumulator */
 
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
-  orxPhysicsDebugDraw        *poDebugDraw;        /**< Debug draw */
+  orxPhysicsDebugDraw        *poDebugDraw;            /**< Debug draw */
 
 #endif /* orxPHYSICS_ENABLE_DEBUG_DRAW */
 
@@ -960,53 +957,35 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
   /* Is simulation enabled? */
   if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_ENABLED))
   {
-    orxFLOAT fDT;
+    orxU32 u32Steps, i;
 
     /* Stores DT */
     sstPhysics.fLastDT = _pstClockInfo->fDT;
 
-    /* Use fixed time step? */
-    if(sstPhysics.fFixedTimeStep)
+    /* Updates DT accumulator */
+    sstPhysics.fDTAccumulator += _pstClockInfo->fDT;
+
+    /* Computes the number of steps */
+    u32Steps = (orxU32)orxMath_Floor(sstPhysics.fDTAccumulator + orxMATH_KF_EPSILON / sstPhysics.fFixedDT);
+
+    /* For all steps */
+    for(i = 0; i < u32Steps; i++)
     {
-      orxU32 u32Steps, u32StepsClamped;
-
-      /* Accumulate time */
-      sstPhysics.fFixedTimestepAccumulator += _pstClockInfo->fDT;
-
-      /* Compute number of steps */
-      u32Steps = orxMath_Floor(sstPhysics.fFixedTimestepAccumulator / sstPhysics.fFixedTimeStep);
-
-      if(u32Steps > 0)
-      {
-        sstPhysics.fFixedTimestepAccumulator -= u32Steps * sstPhysics.fFixedTimeStep;
-      }
-
-      /* Accumulator must have a value lesser than the fixed time step */
-      orxASSERT(sstPhysics.fFixedTimestepAccumulator < sstPhysics.fFixedTimeStep + orxMATH_KF_EPSILON);
-
-      /* Update fFixedTimestepAccumulatorRatio */
-      sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fFixedTimestepAccumulator / sstPhysics.fFixedTimeStep;
-
-      /* Clamp steps */
-      u32StepsClamped = orxMIN(u32Steps, orxPhysics::su32MaxSteps);
-
-      /* For all passed cycles */
-      for(orxU32 i = 0; i < u32StepsClamped; i++)
-      {
-        sstPhysics.poWorld->Step(sstPhysics.fFixedTimeStep, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
-      }
+      /* Updates world simulation */
+      sstPhysics.poWorld->Step(sstPhysics.fFixedDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
     }
-    else
-    {
-      /* For all passed cycles */
-      for(fDT = _pstClockInfo->fDT; fDT > orxPhysics::sfMaxDT; fDT -= orxPhysics::sfMaxDT)
-      {
-        /* Updates world simulation */
-        sstPhysics.poWorld->Step(orxPhysics::sfMaxDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
-      }
 
+    /* Updates accumulator */
+    sstPhysics.fDTAccumulator -= orxU2F(u32Steps) * sstPhysics.fFixedDT;
+
+    /* Not absolute fixed DT? */
+    if(!orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
+    {
       /* Updates last step of world simulation */
-      sstPhysics.poWorld->Step(fDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+      sstPhysics.poWorld->Step(sstPhysics.fDTAccumulator, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
+
+      /* Clears accumulator */
+      sstPhysics.fDTAccumulator = orxFLOAT_0;
     }
 
     /* Clears forces */
@@ -1933,7 +1912,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetJointReactionForce(con
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Gets reaction force */
-  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT);
+  vForce = poJoint->GetReactionForce((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / sstPhysics.fFixedDT);
 
   /* Updates result */
   orxVector_Set(_pvForce, orx2F(vForce.x), orx2F(vForce.y), orxFLOAT_0);
@@ -1955,7 +1934,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetJointReactionTorque(cons
   poJoint = (const b2Joint *)_pstBodyJoint;
 
   /* Updates result */
-  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / orxPhysics::sfMaxDT));
+  fResult = orx2F(poJoint->GetReactionTorque((sstPhysics.fLastDT != orxFLOAT_0) ? orxFLOAT_1 / sstPhysics.fLastDT : orxFLOAT_1 / sstPhysics.fFixedDT));
 
   /* Done! */
   return fResult;
@@ -3013,8 +2992,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
   /* Was not already initialized? */
   if(!(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY))
   {
-    orxFLOAT  fRatio;
-    orxU32    u32FixedTimeStepRate;
+    orxFLOAT  fRatio, fStepFrequency;
     orxVECTOR vGravity;
     b2Vec2    vWorldGravity;
 
@@ -3033,14 +3011,22 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
       orxVector_Copy(&vGravity, &orxVECTOR_0);
     }
 
-    /* Gets fixed timestep rate */
-    u32FixedTimeStepRate = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_FIXED_TIMESTEP_RATE);
+    /* Gets step frequency */
+    fStepFrequency = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_STEP_FREQUENCY);
 
-    /* Valid? */
-    if(u32FixedTimeStepRate > 0)
+    /* Deactivated? */
+    if(fStepFrequency < orxFLOAT_0)
     {
-      /* Sotres it */
-      sstPhysics.fFixedTimeStep = orxFLOAT_1 / orx2F(u32FixedTimeStepRate);
+      /* Uses default frequency */
+      sstPhysics.fFixedDT = orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
+    }
+    else
+    {
+      /* Stores fixed DT */
+      sstPhysics.fFixedDT = (fStepFrequency != orxFLOAT_0) ? orxFLOAT_1 / fStepFrequency : orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
+
+      /* Updates status */
+      orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT, orxPHYSICS_KU32_STATIC_FLAG_NONE);
     }
 
     /* Gets dimension ratio */
@@ -3171,8 +3157,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
       else
       {
         /* Uses default value */
-        orxFLOAT fGravity = sstPhysics.poWorld->GetGravity().Length();
-        sstPhysics.u32ParticleIterations =  b2CalculateParticleIterations(fGravity, orxPhysics::sfSmallesParticleRadius, sstPhysics.fFixedTimeStep ? sstPhysics.fFixedTimeStep : orxPhysics::sfMaxDT);
+        sstPhysics.u32ParticleIterations = b2CalculateParticleIterations(sstPhysics.poWorld->GetGravity().Length(), orxPhysics::sfSmallesParticleRadius, sstPhysics.fFixedDT);
       }
 
       /* Gets core clock */
