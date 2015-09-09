@@ -152,10 +152,10 @@ androidfileinfolist = devfileinfolist + [
 ]
 
 androidnativefileinfolist = devfileinfolist + [
-    {'src': 'build/android-native/*.sh',                                     'dst': None},
-    {'src': 'build/android-native/*.properties',                             'dst': None},
-    {'src': 'build/android-native/obj/local/armeabi-v7a-hard/liborx*.a',     'dst': 'lib/static/android-native/armeabi-v7a-hard'},
-    {'src': 'build/android-native/obj/local/x86/liborx*.a',                  'dst': 'lib/static/android-native/x86'}
+    {'src': 'build/android-native/*.sh',                                'dst': None},
+    {'src': 'build/android-native/*.properties',                        'dst': None},
+    {'src': 'build/android-native/obj/local/armeabi-v7a-hard/liborx*.a','dst': 'lib/static/android-native/armeabi-v7a-hard'},
+    {'src': 'build/android-native/obj/local/x86/liborx*.a',             'dst': 'lib/static/android-native/x86'}
 ]
 
 # List of folder info
@@ -179,7 +179,7 @@ tutorialfolderinfolist = [
 externfolderinfolist = [
     {'src': '../extern/Box2D_2.1.3',                                    'dst': None},
     {'src': '../extern/dlmalloc',                                       'dst': None},
-    {'src': '../extern/freetype-2.4.1',                                 'dst': None},
+    {'src': '../extern/freetype',                                       'dst': None},
     {'src': '../extern/glfw-2.7',                                       'dst': None},
     {'src': '../extern/libsndfile-1.0.22',                              'dst': None},
     {'src': '../extern/libwebp',                                        'dst': None},
