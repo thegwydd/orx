@@ -74,7 +74,6 @@ namespace orxPhysics
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
   static const orxFLOAT sfDefaultFrequency      = orx2F(60.0f);
-  static const orxFLOAT sfSmallesParticleRadius = orx2F(0.04f);
 }
 
 
@@ -3157,7 +3156,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
       else
       {
         /* Uses default value */
-        sstPhysics.u32ParticleIterations = b2CalculateParticleIterations(sstPhysics.poWorld->GetGravity().Length(), orxPhysics::sfSmallesParticleRadius, sstPhysics.fFixedDT);
+        sstPhysics.u32ParticleIterations = sstPhysics.poWorld->CalculateReasonableParticleIterations(sstPhysics.fFixedDT);
       }
 
       /* Gets core clock */
