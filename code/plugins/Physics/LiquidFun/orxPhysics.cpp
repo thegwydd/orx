@@ -1017,7 +1017,10 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Updates accumulator */
     sstPhysics.fDTAccumulator -= orxU2F(u32Steps) * sstPhysics.fFixedDT;
 
-    orxASSERT(sstPhysics.fDTAccumulator < orxMATH_KF_EPSILON + sstPhysics.fFixedDT);
+    if(u32Steps == 0)
+    {
+      orxPhysics_LiquidFun_ResetSmoothedStates();
+    }
 
     /* For all steps */
     for(i = 0; i < u32Steps; i++)
