@@ -877,14 +877,22 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
 static void orxFASTCALL orxPhysics_LiquidFun_ResetSmoothedStates()
 {
   orxPHYSICS_BODY          *pstPhysicBody;
+  b2Body                   *poBody;
 
   /* For all physical bodies */
   for(pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, orxNULL);
       pstPhysicBody != NULL;
       pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, pstPhysicBody))
   {
-    orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
-    pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
+    poBody = pstPhysicBody->poBody;
+
+    /* Non-static and awake? */
+    if((poBody->GetType() != b2_staticBody)
+    && (poBody->IsAwake() != false))
+    {
+      orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
+      pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
+    }
   }
 }
 
@@ -1015,12 +1023,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     u32Steps = (orxU32)orxMath_Floor((sstPhysics.fDTAccumulator + orxMATH_KF_EPSILON) / sstPhysics.fFixedDT);
 
     /* Updates accumulator */
-    sstPhysics.fDTAccumulator -= orxU2F(u32Steps) * sstPhysics.fFixedDT;
-
-    if(u32Steps == 0)
-    {
-      orxPhysics_LiquidFun_ResetSmoothedStates();
-    }
+    sstPhysics.fDTAccumulator = orxMAX(orxFLOAT_0, sstPhysics.fDTAccumulator - (orxU2F(u32Steps) * sstPhysics.fFixedDT));
 
     /* For all steps */
     for(i = 0; i < u32Steps; i++)
