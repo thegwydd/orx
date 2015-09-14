@@ -87,7 +87,8 @@ struct __orxPHYSICS_BODY_t
   b2Body                 *poBody;
   orxFLOAT                fPreviousRotation;
   orxVECTOR               vPreviousPosition;
-
+  orxFLOAT                fSmoothedRotation;
+  orxVECTOR               vSmoothedPosition;
 };
 
 /** Event storage
@@ -786,10 +787,9 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   /* Is enabled? */
   if(orxObject_IsEnabled(pstObject) != orxFALSE)
   {
-    orxVECTOR   vSpeed, vOldPos, vNewPos, vTemp, vSmoothedPos;
+    orxVECTOR   vSpeed, vOldPos, vNewPos, vTemp;
     orxCLOCK   *pstClock;
     orxFLOAT    fCoef = orxFLOAT_1;
-    orxFLOAT    fSmoothedRotation;
 
     /* Gets its clock */
     pstClock = orxObject_GetClock(pstObject);
@@ -832,29 +832,18 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
     orxBody_SetAngularVelocity(pstBody, fCoef * orxPhysics_GetAngularVelocity(_pstBody));
 
     /* Updates rotation */
-#if 1
-    fSmoothedRotation = sstPhysics.fFixedTimestepAccumulatorRatio * orxPhysics_GetRotation(_pstBody) +
+    _pstBody->fSmoothedRotation = sstPhysics.fFixedTimestepAccumulatorRatio * orxPhysics_GetRotation(_pstBody) +
                                    _pstBody->fPreviousRotation * sstPhysics.fOneMinusRatio;
-    orxFrame_SetRotation(pstFrame, eFrameSpace, fSmoothedRotation);
-#else
-    orxFrame_SetRotation(pstFrame, eFrameSpace, orxPhysics_GetRotation(_pstBody));
-#endif
+    orxFrame_SetRotation(pstFrame, eFrameSpace, _pstBody->fSmoothedRotation);
 
     /* Updates position */
-#if 1
     orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
     orxPhysics_GetPosition(_pstBody, &vNewPos);
     orxVector_Mulf(&vNewPos, &vNewPos, sstPhysics.fFixedTimestepAccumulatorRatio);
     orxVector_Mulf(&vTemp, &_pstBody->vPreviousPosition, sstPhysics.fOneMinusRatio);
-    orxVector_Add(&vSmoothedPos, &vNewPos, &vTemp);
-    vSmoothedPos.fZ = vOldPos.fZ;
-    orxFrame_SetPosition(pstFrame, eFrameSpace, &vSmoothedPos);
-#else
-    orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
-    orxPhysics_GetPosition(_pstBody, &vNewPos);
-    vNewPos.fZ = vOldPos.fZ;
-    orxFrame_SetPosition(pstFrame, eFrameSpace, &vNewPos);
-#endif
+    orxVector_Add(&_pstBody->vSmoothedPosition, &vNewPos, &vTemp);
+    _pstBody->vSmoothedPosition.fZ = vOldPos.fZ;
+    orxFrame_SetPosition(pstFrame, eFrameSpace, &_pstBody->vSmoothedPosition);
   }
   else
   {
@@ -884,15 +873,10 @@ static void orxFASTCALL orxPhysics_LiquidFun_ResetSmoothedStates()
       pstPhysicBody != NULL;
       pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, pstPhysicBody))
   {
-    poBody = pstPhysicBody->poBody;
-
-    /* Non-static and awake? */
-    if((poBody->GetType() != b2_staticBody)
-    && (poBody->IsAwake() != false))
-    {
-      orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
-      pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
-    }
+    orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
+    pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
+    pstPhysicBody->fSmoothedRotation = pstPhysicBody->fPreviousRotation;
+    orxVector_Copy(&pstPhysicBody->vSmoothedPosition, &pstPhysicBody->vPreviousPosition);
   }
 }
 
@@ -2023,8 +2007,6 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetJointReactionTorque(cons
 
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition)
 {
-  b2Body   *poBody;
-  b2Vec2    vPosition;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -2032,23 +2014,27 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
   orxASSERT(_pstBody != orxNULL);
   orxASSERT(_pvPosition != orxNULL);
 
-  /* Gets body */
-  poBody = (b2Body *)_pstBody->poBody;
-
-  /* Gets its position */
-  const b2Vec2 &rvPos = poBody->GetPosition();
-
-  /* Sets position vector */
-  vPosition.Set(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY);
-
   /* Should apply? */
-  if((rvPos.x != vPosition.x) || (rvPos.y != vPosition.y))
+  if((_pstBody->vSmoothedPosition.fX != _pvPosition->fX) || (_pstBody->vSmoothedPosition.fY != _pvPosition->fY))
   {
+    b2Body   *poBody;
+    b2Vec2    vPosition;
+
+    /* Gets body */
+    poBody = (b2Body *)_pstBody->poBody;
+
+    /* Sets position vector */
+    vPosition.Set(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY);
+
     /* Wakes up */
     poBody->SetAwake(true);
 
     /* Updates its position */
-    poBody->SetTransform(vPosition, poBody->GetAngle());
+    poBody->SetTransform(vPosition, _pstBody->fSmoothedRotation);
+
+    /* Updates smoothed position */
+    orxVector_Copy(&_pstBody->vPreviousPosition, _pvPosition);
+    orxVector_Copy(&_pstBody->vSmoothedPosition, _pvPosition);
   }
 
   /* Done! */
@@ -2057,28 +2043,32 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
 
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BODY *_pstBody, orxFLOAT _fRotation)
 {
-  b2Body   *poBody;
-  float32   fRotation;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
 
-  /* Gets body */
-  poBody = (b2Body *)_pstBody->poBody;
-
-  /* Gets its rotation */
-  fRotation = poBody->GetAngle();
-
   /* Should apply? */
-  if(fRotation != _fRotation)
+  if(_pstBody->fSmoothedRotation != _fRotation)
   {
+    b2Body   *poBody;
+    b2Vec2    vPosition;
+
+    /* Gets body */
+    poBody = (b2Body *)_pstBody->poBody;
+
+    vPosition.Set(sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fX, sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fY);
+
     /* Wakes up */
     poBody->SetAwake(true);
 
     /* Updates its rotation */
-    poBody->SetTransform(poBody->GetPosition(), _fRotation);
+    poBody->SetTransform(vPosition, _fRotation);
+
+    /* Updates smoothed rotation */
+    _pstBody->fPreviousRotation = _fRotation;
+    _pstBody->fSmoothedRotation = _fRotation;
   }
 
   /* Done! */
