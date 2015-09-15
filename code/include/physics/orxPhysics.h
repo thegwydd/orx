@@ -404,7 +404,7 @@ typedef struct __orxPHYSICS_PARTICLEGROUP_t           orxPHYSICS_PARTICLEGROUP;
 #define orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH         "ElasticStrength"
 #define orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH          "SpringStrength"
 #define orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH         "ViscousStrength"
-#define orxPHYSICS_KZ_CONFIG_SMOOTHED                 "Smoothed"
+#define orxPHYSICS_KZ_CONFIG_INTERPOLATE              "Interpolate"
 
 #define orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE   5
 

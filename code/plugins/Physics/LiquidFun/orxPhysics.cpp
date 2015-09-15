@@ -65,7 +65,7 @@
 #define orxPHYSICS_KU32_STATIC_FLAG_READY       0x00000001 /**< Ready flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_ENABLED     0x00000002 /**< Enabled flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT    0x00000004 /**< Fixed DT flag */
-#define orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED    0x00000008 /**< Smoothed flag */
+#define orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE 0x00000008 /**< Smoothed flag */
 
 #define orxPHYSICS_KU32_STATIC_MASK_ALL         0xFFFFFFFF /**< All mask */
 
@@ -833,7 +833,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
     orxBody_SetSpeed(pstBody, orxVector_Mulf(&vSpeed, &vSpeed, fCoef));
     orxBody_SetAngularVelocity(pstBody, fCoef * orxPhysics_GetAngularVelocity(_pstBody));
 
-    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
     {
       orxVECTOR vTemp;
 
@@ -1032,7 +1032,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     {
       /* Last step and smoothed? */
       if((i == u32Steps - 1)
-      && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED)
+      && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE)
       && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
       {
         /* Reset smoothed states */
@@ -1047,7 +1047,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     if(!orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
     {
       /* Smoothed? */
-      if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+      if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
       {
         /* Reset smoothed states */
         orxPhysics_LiquidFun_ResetSmoothedStates();
@@ -1063,7 +1063,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Clears forces */
     sstPhysics.poWorld->ClearForces();
 
-    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
     {
       /* Updates accumulator ratio */
       sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fDTAccumulator / sstPhysics.fFixedDT;
@@ -2063,7 +2063,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
   /* Gets body */
   poBody = (b2Body *)_pstBody->poBody;
 
-  if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+  if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
   {
     fPosX = _pstBody->vSmoothedPosition.fX;
     fPosY = _pstBody->vSmoothedPosition.fY;
@@ -2092,7 +2092,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
     poBody->SetTransform(vPosition, fRotation);
 
     /* Smoothed? */
-    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
     {
       /* Updates smoothed position */
       orxVector_Copy(&_pstBody->vPreviousPosition, _pvPosition);
@@ -2118,7 +2118,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BOD
   poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets current rotation */
-  fRotation = orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED) ? _pstBody->fSmoothedRotation : poBody->GetAngle();
+  fRotation = orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE) ? _pstBody->fSmoothedRotation : poBody->GetAngle();
 
   /* Should apply? */
   if(fRotation != _fRotation)
@@ -2127,7 +2127,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BOD
     poBody->SetAwake(true);
 
     /* Smoothed? */
-    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
     {
       b2Vec2    vPosition;
 
@@ -3151,10 +3151,10 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
     orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
 
     /* Smoothed physic? */
-    if(orxConfig_GetBool(orxPHYSICS_KZ_CONFIG_SMOOTHED) == orxTRUE)
+    if(orxConfig_GetBool(orxPHYSICS_KZ_CONFIG_INTERPOLATE) == orxTRUE)
     {
       /* Updates status */
-      orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED, orxPHYSICS_KU32_STATIC_FLAG_NONE);
+      orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE, orxPHYSICS_KU32_STATIC_FLAG_NONE);
     }
 
     /* Sets custom memory alloc/free */
