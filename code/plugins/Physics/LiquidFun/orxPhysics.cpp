@@ -65,6 +65,7 @@
 #define orxPHYSICS_KU32_STATIC_FLAG_READY       0x00000001 /**< Ready flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_ENABLED     0x00000002 /**< Enabled flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT    0x00000004 /**< Fixed DT flag */
+#define orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED    0x00000008 /**< Smoothed flag */
 
 #define orxPHYSICS_KU32_STATIC_MASK_ALL         0xFFFFFFFF /**< All mask */
 
@@ -788,7 +789,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   /* Is enabled? */
   if(orxObject_IsEnabled(pstObject) != orxFALSE)
   {
-    orxVECTOR   vSpeed, vOldPos, vNewPos, vTemp;
+    orxVECTOR   vSpeed, vOldPos, vNewPos;
     orxCLOCK   *pstClock;
     orxFLOAT    fCoef = orxFLOAT_1;
 
@@ -832,19 +833,35 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
     orxBody_SetSpeed(pstBody, orxVector_Mulf(&vSpeed, &vSpeed, fCoef));
     orxBody_SetAngularVelocity(pstBody, fCoef * orxPhysics_GetAngularVelocity(_pstBody));
 
-    /* Updates rotation */
-    _pstBody->fSmoothedRotation = sstPhysics.fFixedTimestepAccumulatorRatio * orxPhysics_GetRotation(_pstBody) +
-                                   _pstBody->fPreviousRotation * sstPhysics.fOneMinusRatio;
-    orxFrame_SetRotation(pstFrame, eFrameSpace, _pstBody->fSmoothedRotation);
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    {
+      orxVECTOR vTemp;
 
-    /* Updates position */
-    orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
-    orxPhysics_GetPosition(_pstBody, &vNewPos);
-    orxVector_Mulf(&vNewPos, &vNewPos, sstPhysics.fFixedTimestepAccumulatorRatio);
-    orxVector_Mulf(&vTemp, &_pstBody->vPreviousPosition, sstPhysics.fOneMinusRatio);
-    orxVector_Add(&_pstBody->vSmoothedPosition, &vNewPos, &vTemp);
-    _pstBody->vSmoothedPosition.fZ = vOldPos.fZ;
-    orxFrame_SetPosition(pstFrame, eFrameSpace, &_pstBody->vSmoothedPosition);
+      /* Updates rotation */
+      _pstBody->fSmoothedRotation = sstPhysics.fFixedTimestepAccumulatorRatio * orxPhysics_GetRotation(_pstBody) +
+                                     _pstBody->fPreviousRotation * sstPhysics.fOneMinusRatio;
+      orxFrame_SetRotation(pstFrame, eFrameSpace, _pstBody->fSmoothedRotation);
+
+      /* Updates position */
+      orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
+      orxPhysics_GetPosition(_pstBody, &vNewPos);
+      orxVector_Mulf(&vNewPos, &vNewPos, sstPhysics.fFixedTimestepAccumulatorRatio);
+      orxVector_Mulf(&vTemp, &_pstBody->vPreviousPosition, sstPhysics.fOneMinusRatio);
+      orxVector_Add(&_pstBody->vSmoothedPosition, &vNewPos, &vTemp);
+      _pstBody->vSmoothedPosition.fZ = vOldPos.fZ;
+      orxFrame_SetPosition(pstFrame, eFrameSpace, &_pstBody->vSmoothedPosition);
+    }
+    else
+    {
+      /* Updates rotation */
+      orxFrame_SetRotation(pstFrame, eFrameSpace, orxPhysics_GetRotation(_pstBody));
+
+      /* Updates position */
+      orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
+      orxPhysics_GetPosition(_pstBody, &vNewPos);
+      vNewPos.fZ = vOldPos.fZ;
+      orxFrame_SetPosition(pstFrame, eFrameSpace, &vNewPos);
+    }
   }
   else
   {
@@ -1013,9 +1030,12 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* For all steps */
     for(i = 0; i < u32Steps; i++)
     {
-      /* Last step? */
-      if(i == u32Steps - 1)
+      /* Last step and smoothed? */
+      if((i == u32Steps - 1)
+      && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED)
+      && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
       {
+        /* Reset smoothed states */
         orxPhysics_LiquidFun_ResetSmoothedStates();
       }
 
@@ -1026,7 +1046,12 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Not absolute fixed DT? */
     if(!orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
     {
-      orxPhysics_LiquidFun_ResetSmoothedStates();
+      /* Smoothed? */
+      if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+      {
+        /* Reset smoothed states */
+        orxPhysics_LiquidFun_ResetSmoothedStates();
+      }
 
       /* Updates last step of world simulation */
       sstPhysics.poWorld->Step(sstPhysics.fDTAccumulator, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
@@ -1038,9 +1063,12 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Clears forces */
     sstPhysics.poWorld->ClearForces();
 
-    /* Updates accumulator ratio */
-    sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fDTAccumulator / sstPhysics.fFixedDT;
-    sstPhysics.fOneMinusRatio = orxFLOAT_1 - sstPhysics.fFixedTimestepAccumulatorRatio;
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    {
+      /* Updates accumulator ratio */
+      sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fDTAccumulator / sstPhysics.fFixedDT;
+      sstPhysics.fOneMinusRatio = orxFLOAT_1 - sstPhysics.fFixedTimestepAccumulatorRatio;
+    }
 
     /* For all physical bodies */
     for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
@@ -2023,6 +2051,8 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetJointReactionTorque(cons
 
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition)
 {
+  b2Body   *poBody;
+  orxFLOAT fPosX, fPosY, fRotation;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -2030,14 +2060,27 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
   orxASSERT(_pstBody != orxNULL);
   orxASSERT(_pvPosition != orxNULL);
 
-  /* Should apply? */
-  if((_pstBody->vSmoothedPosition.fX != _pvPosition->fX) || (_pstBody->vSmoothedPosition.fY != _pvPosition->fY))
-  {
-    b2Body   *poBody;
-    b2Vec2    vPosition;
+  /* Gets body */
+  poBody = (b2Body *)_pstBody->poBody;
 
-    /* Gets body */
-    poBody = (b2Body *)_pstBody->poBody;
+  if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+  {
+    fPosX = _pstBody->vSmoothedPosition.fX;
+    fPosY = _pstBody->vSmoothedPosition.fY;
+    fRotation = _pstBody->fSmoothedRotation;
+  }
+  else
+  {
+    const b2Vec2 &rvPos = poBody->GetPosition();
+    fPosX = rvPos.x;
+    fPosY = rvPos.y;
+    fRotation = poBody->GetAngle();
+  }
+
+  /* Should apply? */
+  if((fPosX != _pvPosition->fX) || (fPosY != _pvPosition->fY))
+  {
+    b2Vec2    vPosition;
 
     /* Sets position vector */
     vPosition.Set(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY);
@@ -2046,11 +2089,15 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
     poBody->SetAwake(true);
 
     /* Updates its position */
-    poBody->SetTransform(vPosition, _pstBody->fSmoothedRotation);
+    poBody->SetTransform(vPosition, fRotation);
 
-    /* Updates smoothed position */
-    orxVector_Copy(&_pstBody->vPreviousPosition, _pvPosition);
-    orxVector_Copy(&_pstBody->vSmoothedPosition, _pvPosition);
+    /* Smoothed? */
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    {
+      /* Updates smoothed position */
+      orxVector_Copy(&_pstBody->vPreviousPosition, _pvPosition);
+      orxVector_Copy(&_pstBody->vSmoothedPosition, _pvPosition);
+    }
   }
 
   /* Done! */
@@ -2059,32 +2106,46 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
 
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BODY *_pstBody, orxFLOAT _fRotation)
 {
+  b2Body   *poBody;
+  orxFLOAT fRotation;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
   orxASSERT(_pstBody != orxNULL);
 
+  /* Gets body */
+  poBody = (b2Body *)_pstBody->poBody;
+
+  /* Gets current rotation */
+  fRotation = orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED) ? _pstBody->fSmoothedRotation : poBody->GetAngle();
+
   /* Should apply? */
-  if(_pstBody->fSmoothedRotation != _fRotation)
+  if(fRotation != _fRotation)
   {
-    b2Body   *poBody;
-    b2Vec2    vPosition;
-
-    /* Gets body */
-    poBody = (b2Body *)_pstBody->poBody;
-
-    vPosition.Set(sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fX, sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fY);
-
     /* Wakes up */
     poBody->SetAwake(true);
 
-    /* Updates its rotation */
-    poBody->SetTransform(vPosition, _fRotation);
+    /* Smoothed? */
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED))
+    {
+      b2Vec2    vPosition;
 
-    /* Updates smoothed rotation */
-    _pstBody->fPreviousRotation = _fRotation;
-    _pstBody->fSmoothedRotation = _fRotation;
+      /* Sets current position */
+      vPosition.Set(sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fX, sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fY);
+
+      /* Updates its rotation */
+      poBody->SetTransform(vPosition, _fRotation);
+
+      /* Updates smoothed rotation */
+      _pstBody->fPreviousRotation = _fRotation;
+      _pstBody->fSmoothedRotation = _fRotation;
+    }
+    else
+    {
+      /* Updates its rotation */
+      poBody->SetTransform(poBody->GetPosition(), _fRotation);
+    }
   }
 
   /* Done! */
@@ -3088,6 +3149,13 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
 
     /* Pushes config section */
     orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
+
+    /* Smoothed physic? */
+    if(orxConfig_GetBool(orxPHYSICS_KZ_CONFIG_SMOOTHED) == orxTRUE)
+    {
+      /* Updates status */
+      orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_SMOOTHED, orxPHYSICS_KU32_STATIC_FLAG_NONE);
+    }
 
     /* Sets custom memory alloc/free */
     b2SetAllocFreeCallbacks(orxPhysics_LiquidFun_Allocate, orxPhysics_LiquidFun_Free, NULL);
