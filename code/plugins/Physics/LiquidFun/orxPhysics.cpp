@@ -73,10 +73,9 @@ namespace orxPhysics
   static const orxU32   su32DefaultIterations   = 10;
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
+  static const orxU32   su32BodyBankSize        = 512;
   static const orxFLOAT sfDefaultFrequency      = orx2F(60.0f);
 }
-
-#define orxBODY_KU32_BODY_BANK_SIZE           512
 
 /***************************************************************************
  * Structure declaration                                                   *
@@ -84,11 +83,12 @@ namespace orxPhysics
 
 struct __orxPHYSICS_BODY_t
 {
-  b2Body                 *poBody;
-  orxFLOAT                fPreviousRotation;
-  orxVECTOR               vPreviousPosition;
-  orxFLOAT                fSmoothedRotation;
-  orxVECTOR               vSmoothedPosition;
+  orxLINKLIST_NODE                  stNode;            /**< Link list node */
+  orxVECTOR                         vPreviousPosition; /**< Previous position */
+  orxVECTOR                         vSmoothedPosition; /**< Smoothed position */
+  b2Body                           *poBody;            /**< Box2D body */
+  orxFLOAT                          fPreviousRotation; /**< Previous rotation */
+  orxFLOAT                          fSmoothedRotation; /**< Smoothed rotation */
 };
 
 /** Event storage
@@ -152,6 +152,7 @@ typedef struct __orxPHYSICS_STATIC_t
 
   orxFLOAT                    fFixedTimestepAccumulatorRatio;
   orxFLOAT                    fOneMinusRatio;
+  orxLINKLIST                 stBodyList;            /**< Body link list */
   orxBANK                    *pstBodyBank;           /**< Body bank */
 
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
@@ -869,9 +870,9 @@ static void orxFASTCALL orxPhysics_LiquidFun_ResetSmoothedStates()
   b2Body                   *poBody;
 
   /* For all physical bodies */
-  for(pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, orxNULL);
+  for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
       pstPhysicBody != NULL;
-      pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, pstPhysicBody))
+      pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
   {
     orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
     pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
@@ -898,9 +899,9 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
   orxASSERT(_pstClockInfo != orxNULL);
 
   /* For all physical bodies */
-  for(pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, orxNULL);
+  for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
       pstPhysicBody != NULL;
-      pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, pstPhysicBody))
+      pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
   {
     orxOBJECT  *pstObject;
     orxBODY    *pstBody;
@@ -1012,7 +1013,11 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* For all steps */
     for(i = 0; i < u32Steps; i++)
     {
-      orxPhysics_LiquidFun_ResetSmoothedStates();
+      /* Last step? */
+      if(i == u32Steps - 1)
+      {
+        orxPhysics_LiquidFun_ResetSmoothedStates();
+      }
 
       /* Updates world simulation */
       sstPhysics.poWorld->Step(sstPhysics.fFixedDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
@@ -1038,9 +1043,9 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     sstPhysics.fOneMinusRatio = orxFLOAT_1 - sstPhysics.fFixedTimestepAccumulatorRatio;
 
     /* For all physical bodies */
-    for(pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, orxNULL);
+    for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
         pstPhysicBody != NULL;
-        pstPhysicBody = (orxPHYSICS_BODY*)orxBank_GetNext(sstPhysics.pstBodyBank, pstPhysicBody))
+        pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
     {
       poBody = pstPhysicBody->poBody;
 
@@ -1169,6 +1174,7 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
         bHasMass = orxFALSE;
       }
 
+      /* Adds a body */
       pstResult = (orxPHYSICS_BODY*) orxBank_Allocate(sstPhysics.pstBodyBank);
 
       /* Valid? */
@@ -1185,6 +1191,9 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
           /* Updates its mass data */
           pstResult->poBody->SetMassData(&stMassData);
         }
+
+        /* Adds it to list */
+        orxLinkList_AddEnd(&(sstPhysics.stBodyList), &(pstResult->stNode));
       }
     }
     else
@@ -1192,6 +1201,7 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
       /* Sets its type */
       stBodyDef.type = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_CAN_MOVE) ? b2_kinematicBody : b2_staticBody;
 
+      /* Adds a body */
       pstResult = (orxPHYSICS_BODY*) orxBank_Allocate(sstPhysics.pstBodyBank);
 
       /* Valid? */
@@ -1201,6 +1211,9 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
 
         /* Creates dynamic body */
         pstResult->poBody = sstPhysics.poWorld->CreateBody(&stBodyDef);
+
+        /* Adds it to list */
+        orxLinkList_AddEnd(&(sstPhysics.stBodyList), &(pstResult->stNode));
       }
     }
   }
@@ -1241,6 +1254,9 @@ extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteBody(orxPHYSICS_BODY *_ps
 
   /* Deletes it */
   sstPhysics.poWorld->DestroyBody((b2Body *)_pstBody->poBody);
+
+  /* Removes body */
+  orxLinkList_Remove(&(_pstBody->stNode));
   orxBank_Free(sstPhysics.pstBodyBank, _pstBody);
 
   return;
@@ -3070,192 +3086,192 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
     /* Cleans static controller */
     orxMemory_Zero(&sstPhysics, sizeof(orxPHYSICS_STATIC));
 
-    /* Creates body bank */
-    sstPhysics.pstBodyBank   = orxBank_Create(orxBODY_KU32_BODY_BANK_SIZE, sizeof(orxPHYSICS_BODY), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
+    /* Pushes config section */
+    orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
+
+    /* Sets custom memory alloc/free */
+    b2SetAllocFreeCallbacks(orxPhysics_LiquidFun_Allocate, orxPhysics_LiquidFun_Free, NULL);
+
+    /* Gets gravity & allow sleep from config */
+    if(orxConfig_GetVector(orxPHYSICS_KZ_CONFIG_GRAVITY, &vGravity) == orxNULL)
+    {
+      orxVector_Copy(&vGravity, &orxVECTOR_0);
+    }
+
+    /* Gets step frequency */
+    fStepFrequency = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_STEP_FREQUENCY);
+
+    /* Deactivated? */
+    if(fStepFrequency < orxFLOAT_0)
+    {
+      /* Uses default frequency */
+      sstPhysics.fFixedDT = orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
+    }
+    else
+    {
+      /* Stores fixed DT */
+      sstPhysics.fFixedDT = (fStepFrequency != orxFLOAT_0) ? orxFLOAT_1 / fStepFrequency : orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
+
+      /* Updates status */
+      orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT, orxPHYSICS_KU32_STATIC_FLAG_NONE);
+    }
+
+    /* Gets dimension ratio */
+    fRatio = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RATIO);
 
     /* Valid? */
-    if(sstPhysics.pstBodyBank != orxNULL)
+    if(fRatio > orxFLOAT_0)
     {
-      /* Pushes config section */
-      orxConfig_PushSection(orxPHYSICS_KZ_CONFIG_SECTION);
+      /* Stores it */
+      sstPhysics.fDimensionRatio = fRatio;
+    }
+    else
+    {
+      /* Stores default one */
+      sstPhysics.fDimensionRatio = orxPhysics::sfDefaultDimensionRatio;
+    }
 
-      /* Sets custom memory alloc/free */
-      b2SetAllocFreeCallbacks(orxPhysics_LiquidFun_Allocate, orxPhysics_LiquidFun_Free, NULL);
+    /* Inits world gravity */
+    vWorldGravity.Set(sstPhysics.fDimensionRatio * vGravity.fX, sstPhysics.fDimensionRatio * vGravity.fY);
 
-      /* Gets gravity & allow sleep from config */
-      if(orxConfig_GetVector(orxPHYSICS_KZ_CONFIG_GRAVITY, &vGravity) == orxNULL)
+    /* Creates world */
+    sstPhysics.poWorld = new b2World(vWorldGravity);
+
+    /* Success? */
+    if(sstPhysics.poWorld != orxNULL)
+    {
+      orxCLOCK *pstClock;
+      orxU32    u32IterationsPerStep, u32ParticleIterationsPerStep;
+
+      sstPhysics.pstParticleSystems = orxHashTable_Create(orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE, orxHASHTABLE_KU32_FLAG_NONE, orxMEMORY_TYPE_PHYSICS);
+
+      /* Success ? */
+      if(sstPhysics.pstParticleSystems != orxNULL)
       {
-        orxVector_Copy(&vGravity, &orxVECTOR_0);
-      }
-
-      /* Gets step frequency */
-      fStepFrequency = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_STEP_FREQUENCY);
-
-      /* Deactivated? */
-      if(fStepFrequency < orxFLOAT_0)
-      {
-        /* Uses default frequency */
-        sstPhysics.fFixedDT = orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
-      }
-      else
-      {
-        /* Stores fixed DT */
-        sstPhysics.fFixedDT = (fStepFrequency != orxFLOAT_0) ? orxFLOAT_1 / fStepFrequency : orxFLOAT_1 / orxPhysics::sfDefaultFrequency;
-
-        /* Updates status */
-        orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT, orxPHYSICS_KU32_STATIC_FLAG_NONE);
-      }
-
-      /* Gets dimension ratio */
-      fRatio = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RATIO);
-
-      /* Valid? */
-      if(fRatio > orxFLOAT_0)
-      {
-        /* Stores it */
-        sstPhysics.fDimensionRatio = fRatio;
-      }
-      else
-      {
-        /* Stores default one */
-        sstPhysics.fDimensionRatio = orxPhysics::sfDefaultDimensionRatio;
-      }
-
-      /* Inits world gravity */
-      vWorldGravity.Set(sstPhysics.fDimensionRatio * vGravity.fX, sstPhysics.fDimensionRatio * vGravity.fY);
-
-      /* Creates world */
-      sstPhysics.poWorld = new b2World(vWorldGravity);
-
-      /* Success? */
-      if(sstPhysics.poWorld != orxNULL)
-      {
-        orxCLOCK *pstClock;
-        orxU32    u32IterationsPerStep, u32ParticleIterationsPerStep;
-
-        sstPhysics.pstParticleSystems = orxHashTable_Create(orxPHYSICS_KU32_PARTICLE_SYSTEM_HASHTABLE_SIZE, orxHASHTABLE_KU32_FLAG_NONE, orxMEMORY_TYPE_PHYSICS);
-
-        /* Success ? */
-        if(sstPhysics.pstParticleSystems != orxNULL)
+        /* Create Particle Systems */
+        for(orxS32 i = 0; i < orxConfig_GetListCounter(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST); i++)
         {
-          /* Create Particle Systems */
-          for(orxS32 i = 0; i < orxConfig_GetListCounter(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST); i++)
+          const orxSTRING zParticleSystemName = orxConfig_GetListString(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST, i);
+          b2ParticleSystemDef particleSystemDef;
+
+          if(orxConfig_HasSection(zParticleSystemName))
           {
-            const orxSTRING zParticleSystemName = orxConfig_GetListString(orxPHYSICS_KZ_CONFIG_PARTICLE_SYSTEM_LIST, i);
-            b2ParticleSystemDef particleSystemDef;
+            orxConfig_PushSection(zParticleSystemName);
 
-            if(orxConfig_HasSection(zParticleSystemName))
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_RADIUS))
             {
-              orxConfig_PushSection(zParticleSystemName);
-
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_RADIUS))
-              {
-                particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS) * sstPhysics.fDimensionRatio;
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DENSITY))
-              {
-                particleSystemDef.density = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DENSITY);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT))
-              {
-                particleSystemDef.maxCount = orxConfig_GetS32(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH))
-              {
-                particleSystemDef.pressureStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH))
-              {
-                particleSystemDef.dampingStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH))
-              {
-                particleSystemDef.elasticStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH))
-              {
-                particleSystemDef.springStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH);
-              }
-              if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH))
-              {
-                particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
-              }
-
-              orxConfig_PopSection();
+              particleSystemDef.radius = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_RADIUS) * sstPhysics.fDimensionRatio;
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DENSITY))
+            {
+              particleSystemDef.density = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DENSITY);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT))
+            {
+              particleSystemDef.maxCount = orxConfig_GetS32(orxPHYSICS_KZ_CONFIG_MAX_PARTICLE_COUNT);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH))
+            {
+              particleSystemDef.pressureStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_PRESSURE_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH))
+            {
+              particleSystemDef.dampingStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_DAMPING_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH))
+            {
+              particleSystemDef.elasticStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_ELASTIC_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH))
+            {
+              particleSystemDef.springStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_SPRING_STRENGTH);
+            }
+            if(orxConfig_HasValue(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH))
+            {
+              particleSystemDef.viscousStrength = orxConfig_GetFloat(orxPHYSICS_KZ_CONFIG_VISCOUS_STRENGTH);
             }
 
-            /* Create Particle System */
-            b2ParticleSystem *poParticleSystem = sstPhysics.poWorld->CreateParticleSystem(&particleSystemDef);
+            orxConfig_PopSection();
+          }
 
-            /* Success ? */
-            if(poParticleSystem != orxNULL)
-            {
-              orxHashTable_Add(sstPhysics.pstParticleSystems, orxString_GetID(zParticleSystemName), (void*)poParticleSystem);
-            }
+          /* Create Particle System */
+          b2ParticleSystem *poParticleSystem = sstPhysics.poWorld->CreateParticleSystem(&particleSystemDef);
+
+          /* Success ? */
+          if(poParticleSystem != orxNULL)
+          {
+            orxHashTable_Add(sstPhysics.pstParticleSystems, orxString_GetID(zParticleSystemName), (void*)poParticleSystem);
           }
         }
+      }
 
-        /* Creates listeners */
-        sstPhysics.poContactListener = new orxPhysicsContactListener();
+      /* Creates listeners */
+      sstPhysics.poContactListener = new orxPhysicsContactListener();
 
-        /* Registers them */
-        sstPhysics.poWorld->SetContactListener(sstPhysics.poContactListener);
+      /* Registers them */
+      sstPhysics.poWorld->SetContactListener(sstPhysics.poContactListener);
 
-        /* Removes auto clear forces */
-        sstPhysics.poWorld->SetAutoClearForces(false);
+      /* Removes auto clear forces */
+      sstPhysics.poWorld->SetAutoClearForces(false);
 
-        /* Stores inverse dimension ratio */
-        sstPhysics.fRecDimensionRatio = orxFLOAT_1 / sstPhysics.fDimensionRatio;
+      /* Stores inverse dimension ratio */
+      sstPhysics.fRecDimensionRatio = orxFLOAT_1 / sstPhysics.fDimensionRatio;
 
-        /* Gets iteration per step number from config */
-        u32IterationsPerStep = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_ITERATIONS);
+      /* Gets iteration per step number from config */
+      u32IterationsPerStep = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_ITERATIONS);
+
+      /* Valid? */
+      if(u32IterationsPerStep > 0)
+      {
+        /* Stores it */
+        sstPhysics.u32Iterations = u32IterationsPerStep;
+      }
+      else
+      {
+        /* Uses default value */
+        sstPhysics.u32Iterations = orxPhysics::su32DefaultIterations;
+      }
+
+      /* Gets particle iterations per step number from config */
+      u32ParticleIterationsPerStep = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_PARTICLE_ITERATIONS);
+
+      /* Valid? */
+      if(u32ParticleIterationsPerStep > 0)
+      {
+        /* Stores it */
+        sstPhysics.u32ParticleIterations = u32ParticleIterationsPerStep;
+      }
+      else
+      {
+        /* Uses default value */
+        sstPhysics.u32ParticleIterations = sstPhysics.poWorld->CalculateReasonableParticleIterations(sstPhysics.fFixedDT);
+      }
+
+      /* Gets core clock */
+      pstClock = orxClock_FindFirst(orx2F(-1.0f), orxCLOCK_TYPE_CORE);
+
+      /* Resyncs clocks */
+      orxClock_ResyncAll();
+
+      /* Valid? */
+      if(pstClock != orxNULL)
+      {
+        /* Registers rendering function */
+        eResult = orxClock_Register(pstClock, orxPhysics_LiquidFun_Update, orxNULL, orxMODULE_ID_PHYSICS, orxCLOCK_PRIORITY_LOWER);
 
         /* Valid? */
-        if(u32IterationsPerStep > 0)
+        if(eResult != orxSTATUS_FAILURE)
         {
-          /* Stores it */
-          sstPhysics.u32Iterations = u32IterationsPerStep;
-        }
-        else
-        {
-          /* Uses default value */
-          sstPhysics.u32Iterations = orxPhysics::su32DefaultIterations;
-        }
+          /* Creates event bank */
+          sstPhysics.pstEventBank = orxBank_Create(orxPhysics::su32MessageBankSize, sizeof(orxPHYSICS_EVENT_STORAGE), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
-        /* Gets particle iterations per step number from config */
-        u32ParticleIterationsPerStep = orxConfig_GetU32(orxPHYSICS_KZ_CONFIG_PARTICLE_ITERATIONS);
+          /* Creates body bank */
+          sstPhysics.pstBodyBank  = orxBank_Create(orxPhysics::su32BodyBankSize, sizeof(orxPHYSICS_BODY), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
-        /* Valid? */
-        if(u32ParticleIterationsPerStep > 0)
-        {
-          /* Stores it */
-          sstPhysics.u32ParticleIterations = u32ParticleIterationsPerStep;
-        }
-        else
-        {
-          /* Uses default value */
-          sstPhysics.u32ParticleIterations = sstPhysics.poWorld->CalculateReasonableParticleIterations(sstPhysics.fFixedDT);
-        }
-
-        /* Gets core clock */
-        pstClock = orxClock_FindFirst(orx2F(-1.0f), orxCLOCK_TYPE_CORE);
-
-        /* Resyncs clocks */
-        orxClock_ResyncAll();
-
-        /* Valid? */
-        if(pstClock != orxNULL)
-        {
-          /* Registers rendering function */
-          eResult = orxClock_Register(pstClock, orxPhysics_LiquidFun_Update, orxNULL, orxMODULE_ID_PHYSICS, orxCLOCK_PRIORITY_LOWER);
-
-          /* Valid? */
-          if(eResult != orxSTATUS_FAILURE)
+          if((sstPhysics.pstEventBank != orxNULL)
+          && (sstPhysics.pstBodyBank != orxNULL))
           {
-            /* Creates event bank */
-            sstPhysics.pstEventBank = orxBank_Create(orxPhysics::su32MessageBankSize, sizeof(orxPHYSICS_EVENT_STORAGE), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
-
-  #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
+#ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
             /* Creates debug draw */
             sstPhysics.poDebugDraw = new orxPhysicsDebugDraw();
@@ -3269,13 +3285,23 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
             /* Adds event handler */
             orxEvent_AddHandler(orxEVENT_TYPE_RENDER, orxPhysics_LiquidFun_EventHandler);
 
-  #endif /* orxPHYSICS_ENABLE_DEBUG_DRAW */
+#endif /* orxPHYSICS_ENABLE_DEBUG_DRAW */
 
             /* Updates status */
             sstPhysics.u32Flags |= orxPHYSICS_KU32_STATIC_FLAG_READY | orxPHYSICS_KU32_STATIC_FLAG_ENABLED;
           }
           else
           {
+            if(sstPhysics.pstEventBank != orxNULL)
+            {
+              orxBank_Delete(sstPhysics.pstEventBank);
+            }
+
+            if(sstPhysics.pstBodyBank != orxNULL)
+            {
+              orxBank_Delete(sstPhysics.pstBodyBank);
+            }
+
             /* Deletes listeners */
             delete sstPhysics.poContactListener;
 
@@ -3332,21 +3358,40 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
       }
       else
       {
+        /* Deletes listeners */
+        delete sstPhysics.poContactListener;
+
+        /* Deletes particle systems */
+        if(sstPhysics.pstParticleSystems != orxNULL)
+        {
+          orxHANDLE iterator;
+          b2ParticleSystem *poParticleSystem;
+
+          for(iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, orxNULL, orxNULL, (void**)&poParticleSystem);
+            iterator != orxHANDLE_UNDEFINED;
+            iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, iterator, orxNULL, (void**)&poParticleSystem))
+          {
+            sstPhysics.poWorld->DestroyParticleSystem(poParticleSystem);
+          }
+
+          orxHashTable_Delete(sstPhysics.pstParticleSystems);
+        }
+
+        /* Deletes world */
+        delete sstPhysics.poWorld;
+
         /* Updates result */
         eResult = orxSTATUS_FAILURE;
       }
-
-      /* Pops config section */
-      orxConfig_PopSection();
     }
     else
     {
-      /* Logs message */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_PHYSICS, "Couldn't create body bank.");
-
       /* Updates result */
       eResult = orxSTATUS_FAILURE;
     }
+
+    /* Pops config section */
+    orxConfig_PopSection();
   }
 
   /* Done! */
@@ -3358,8 +3403,11 @@ extern "C" void orxFASTCALL orxPhysics_LiquidFun_Exit()
   /* Was initialized? */
   if(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY)
   {
-
+    /* Deletes body bank */
     orxBank_Delete(sstPhysics.pstBodyBank);
+
+    /* Deletes event bank */
+    orxBank_Delete(sstPhysics.pstEventBank);
 
     /* Deletes the particle systems */
     if(sstPhysics.pstParticleSystems != orxNULL)
