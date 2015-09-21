@@ -65,6 +65,7 @@
 #define orxPHYSICS_KU32_STATIC_FLAG_READY       0x00000001 /**< Ready flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_ENABLED     0x00000002 /**< Enabled flag */
 #define orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT    0x00000004 /**< Fixed DT flag */
+#define orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE 0x00000008 /**< Smoothed flag */
 
 #define orxPHYSICS_KU32_STATIC_MASK_ALL         0xFFFFFFFF /**< All mask */
 
@@ -73,13 +74,23 @@ namespace orxPhysics
   static const orxU32   su32DefaultIterations   = 10;
   static const orxFLOAT sfDefaultDimensionRatio = orx2F(0.01f);
   static const orxU32   su32MessageBankSize     = 512;
+  static const orxU32   su32BodyBankSize        = 512;
   static const orxFLOAT sfDefaultFrequency      = orx2F(60.0f);
 }
-
 
 /***************************************************************************
  * Structure declaration                                                   *
  ***************************************************************************/
+
+struct __orxPHYSICS_BODY_t
+{
+  orxLINKLIST_NODE                  stNode;            /**< Link list node */
+  orxVECTOR                         vPreviousPosition; /**< Previous position */
+  orxVECTOR                         vSmoothedPosition; /**< Smoothed position */
+  b2Body                           *poBody;            /**< Box2D body */
+  orxFLOAT                          fPreviousRotation; /**< Previous rotation */
+  orxFLOAT                          fSmoothedRotation; /**< Smoothed rotation */
+};
 
 /** Event storage
  */
@@ -139,6 +150,11 @@ typedef struct __orxPHYSICS_STATIC_t
   orxHASHTABLE               *pstParticleSystems;     /**< Particle System Hashtable*/
   orxFLOAT                    fFixedDT;               /**< Fixed DT */
   orxFLOAT                    fDTAccumulator;         /**< DT accumulator */
+
+  orxFLOAT                    fFixedTimestepAccumulatorRatio;
+  orxFLOAT                    fOneMinusRatio;
+  orxLINKLIST                 stBodyList;            /**< Body link list */
+  orxBANK                    *pstBodyBank;           /**< Body bank */
 
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
@@ -756,7 +772,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   orxPROFILER_PUSH_MARKER("orxPhysics_ApplySimResult");
 
   /* Gets physics body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets associated body */
   pstBody = orxBODY(poBody->GetUserData());
@@ -817,14 +833,35 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
     orxBody_SetSpeed(pstBody, orxVector_Mulf(&vSpeed, &vSpeed, fCoef));
     orxBody_SetAngularVelocity(pstBody, fCoef * orxPhysics_GetAngularVelocity(_pstBody));
 
-    /* Updates rotation */
-    orxFrame_SetRotation(pstFrame, eFrameSpace, orxPhysics_GetRotation(_pstBody));
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+    {
+      orxVECTOR vTemp;
 
-    /* Updates position */
-    orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
-    orxPhysics_GetPosition(_pstBody, &vNewPos);
-    vNewPos.fZ = vOldPos.fZ;
-    orxFrame_SetPosition(pstFrame, eFrameSpace, &vNewPos);
+      /* Updates rotation */
+      _pstBody->fSmoothedRotation = sstPhysics.fFixedTimestepAccumulatorRatio * orxPhysics_GetRotation(_pstBody) +
+                                     _pstBody->fPreviousRotation * sstPhysics.fOneMinusRatio;
+      orxFrame_SetRotation(pstFrame, eFrameSpace, _pstBody->fSmoothedRotation);
+
+      /* Updates position */
+      orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
+      orxPhysics_GetPosition(_pstBody, &vNewPos);
+      orxVector_Mulf(&vNewPos, &vNewPos, sstPhysics.fFixedTimestepAccumulatorRatio);
+      orxVector_Mulf(&vTemp, &_pstBody->vPreviousPosition, sstPhysics.fOneMinusRatio);
+      orxVector_Add(&_pstBody->vSmoothedPosition, &vNewPos, &vTemp);
+      _pstBody->vSmoothedPosition.fZ = vOldPos.fZ;
+      orxFrame_SetPosition(pstFrame, eFrameSpace, &_pstBody->vSmoothedPosition);
+    }
+    else
+    {
+      /* Updates rotation */
+      orxFrame_SetRotation(pstFrame, eFrameSpace, orxPhysics_GetRotation(_pstBody));
+
+      /* Updates position */
+      orxFrame_GetPosition(pstFrame, eFrameSpace, &vOldPos);
+      orxPhysics_GetPosition(_pstBody, &vNewPos);
+      vNewPos.fZ = vOldPos.fZ;
+      orxFrame_SetPosition(pstFrame, eFrameSpace, &vNewPos);
+    }
   }
   else
   {
@@ -844,6 +881,30 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
   return;
 }
 
+static void orxFASTCALL orxPhysics_LiquidFun_ResetSmoothedStates()
+{
+  orxPHYSICS_BODY          *pstPhysicBody;
+  b2Body                   *poBody;
+
+  /* For all physical bodies */
+  for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
+      pstPhysicBody != NULL;
+      pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
+  {
+    poBody = pstPhysicBody->poBody;
+
+    /* Non-static and awake? */
+    if((poBody->GetType() != b2_staticBody)
+    && (poBody->IsAwake() != false))
+    {
+      orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
+      orxVector_Copy(&pstPhysicBody->vSmoothedPosition, &pstPhysicBody->vPreviousPosition);
+      pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
+      pstPhysicBody->fSmoothedRotation = pstPhysicBody->fPreviousRotation;
+    }
+  }
+}
+
 /** Update (callback to register on a clock)
  * @param[in]   _pstClockInfo   Clock info of the clock used upon registration
  * @param[in]   _pContext       Context sent when registering callback to the clock
@@ -851,6 +912,7 @@ static void orxFASTCALL orxPhysics_ApplySimulationResult(orxPHYSICS_BODY *_pstBo
 static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClockInfo, void *_pContext)
 {
   orxPHYSICS_EVENT_STORAGE *pstEventStorage;
+  orxPHYSICS_BODY          *pstPhysicBody;
   b2Body                   *poBody;
 
   /* Profiles */
@@ -861,12 +923,14 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
   orxASSERT(_pstClockInfo != orxNULL);
 
   /* For all physical bodies */
-  for(poBody = sstPhysics.poWorld->GetBodyList();
-      poBody != NULL;
-      poBody = poBody->GetNext())
+  for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
+      pstPhysicBody != NULL;
+      pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
   {
     orxOBJECT  *pstObject;
     orxBODY    *pstBody;
+
+    poBody = pstPhysicBody->poBody;
 
     /* Gets associated body */
     pstBody = orxBODY(poBody->GetUserData());
@@ -917,8 +981,8 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
         orxFRAME *pstParentFrame;
 
         /* Updates body position & rotation */
-        orxPhysics_SetPosition((orxPHYSICS_BODY *)poBody, orxFrame_GetPosition(pstFrame, orxFRAME_SPACE_GLOBAL, &vPos));
-        orxPhysics_SetRotation((orxPHYSICS_BODY *)poBody, orxFrame_GetRotation(pstFrame, orxFRAME_SPACE_GLOBAL));
+        orxPhysics_SetPosition(pstPhysicBody, orxFrame_GetPosition(pstFrame, orxFRAME_SPACE_GLOBAL, &vPos));
+        orxPhysics_SetRotation(pstPhysicBody, orxFrame_GetRotation(pstFrame, orxFRAME_SPACE_GLOBAL));
 
         /* Gets parent frame */
         pstParentFrame = orxFRAME(orxStructure_GetParent(pstFrame));
@@ -929,8 +993,8 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
       }
 
       /* Applies speed & angular velocity */
-      orxPhysics_SetSpeed((orxPHYSICS_BODY *)poBody, orxVector_Mulf(&vSpeed, &vSpeed, fCoef));
-      orxPhysics_SetAngularVelocity((orxPHYSICS_BODY *)poBody, fCoef * orxBody_GetAngularVelocity(pstBody));
+      orxPhysics_SetSpeed(pstPhysicBody, orxVector_Mulf(&vSpeed, &vSpeed, fCoef));
+      orxPhysics_SetAngularVelocity(pstPhysicBody, fCoef * orxBody_GetAngularVelocity(pstBody));
 
       /* No custom gravity */
       if(orxBody_GetCustomGravity(pstBody, &vGravity) == orxNULL)
@@ -940,7 +1004,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
       }
 
       /* Applies modified gravity */
-      orxPhysics_SetCustomGravity((orxPHYSICS_BODY *)poBody, orxVector_Mulf(&vGravity, &vGravity, fCoef * fCoef));
+      orxPhysics_SetCustomGravity(pstPhysicBody, orxVector_Mulf(&vGravity, &vGravity, fCoef * fCoef));
     }
     else
     {
@@ -967,15 +1031,22 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Computes the number of steps */
     u32Steps = (orxU32)orxMath_Floor((sstPhysics.fDTAccumulator + orxMATH_KF_EPSILON) / sstPhysics.fFixedDT);
 
+    /* Updates accumulator */
+    sstPhysics.fDTAccumulator = orxMAX(orxFLOAT_0, sstPhysics.fDTAccumulator - (orxU2F(u32Steps) * sstPhysics.fFixedDT));
+
     /* For all steps */
     for(i = 0; i < u32Steps; i++)
     {
+      /* Last step and smoothed? */
+      if((i == u32Steps - 1) && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+      {
+        /* Reset smoothed states */
+        orxPhysics_LiquidFun_ResetSmoothedStates();
+      }
+
       /* Updates world simulation */
       sstPhysics.poWorld->Step(sstPhysics.fFixedDT, sstPhysics.u32Iterations, sstPhysics.u32Iterations >> 1, sstPhysics.u32ParticleIterations);
     }
-
-    /* Updates accumulator */
-    sstPhysics.fDTAccumulator -= orxU2F(u32Steps) * sstPhysics.fFixedDT;
 
     /* Not absolute fixed DT? */
     if(!orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT))
@@ -990,17 +1061,26 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     /* Clears forces */
     sstPhysics.poWorld->ClearForces();
 
-    /* For all physical bodies */
-    for(poBody = sstPhysics.poWorld->GetBodyList();
-        poBody != NULL;
-        poBody = poBody->GetNext())
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
     {
+      /* Updates accumulator ratio */
+      sstPhysics.fFixedTimestepAccumulatorRatio = sstPhysics.fDTAccumulator / sstPhysics.fFixedDT;
+      sstPhysics.fOneMinusRatio = orxFLOAT_1 - sstPhysics.fFixedTimestepAccumulatorRatio;
+    }
+
+    /* For all physical bodies */
+    for(pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetFirst(&(sstPhysics.stBodyList));
+        pstPhysicBody != NULL;
+        pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
+    {
+      poBody = pstPhysicBody->poBody;
+
       /* Non-static and awake? */
       if((poBody->GetType() != b2_staticBody)
       && (poBody->IsAwake() != false))
       {
         /* Applies simulation result */
-        orxPhysics_ApplySimulationResult((orxPHYSICS_BODY *)poBody);
+        orxPhysics_ApplySimulationResult(pstPhysicBody);
       }
     }
 
@@ -1073,8 +1153,8 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
 
 extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const orxHANDLE _hUserData, const orxBODY_DEF *_pstBodyDef)
 {
-  b2Body     *poResult = 0;
-  b2BodyDef   stBodyDef;
+  orxPHYSICS_BODY     *pstResult = 0;
+  b2BodyDef            stBodyDef;
 
   /* Checks */
   orxASSERT(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY);
@@ -1120,14 +1200,26 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
         bHasMass = orxFALSE;
       }
 
-      /* Creates dynamic body */
-      poResult = sstPhysics.poWorld->CreateBody(&stBodyDef);
+      /* Adds a body */
+      pstResult = (orxPHYSICS_BODY*) orxBank_Allocate(sstPhysics.pstBodyBank);
 
-      /* Valid and has mass data? */
-      if((bHasMass != orxFALSE) && (poResult != orxNULL))
+      /* Valid? */
+      if(pstResult != orxNULL)
       {
-        /* Updates its mass data */
-        poResult->SetMassData(&stMassData);
+        orxMemory_Zero(pstResult, sizeof(orxPHYSICS_BODY));
+
+        /* Creates dynamic body */
+        pstResult->poBody = sstPhysics.poWorld->CreateBody(&stBodyDef);
+
+        /* Valid and has mass data? */
+        if((bHasMass != orxFALSE) && (pstResult->poBody != orxNULL))
+        {
+          /* Updates its mass data */
+          pstResult->poBody->SetMassData(&stMassData);
+        }
+
+        /* Adds it to list */
+        orxLinkList_AddEnd(&(sstPhysics.stBodyList), &(pstResult->stNode));
       }
     }
     else
@@ -1135,13 +1227,25 @@ extern "C" orxPHYSICS_BODY *orxFASTCALL orxPhysics_LiquidFun_CreateBody(const or
       /* Sets its type */
       stBodyDef.type = orxFLAG_TEST(_pstBodyDef->u32Flags, orxBODY_DEF_KU32_FLAG_CAN_MOVE) ? b2_kinematicBody : b2_staticBody;
 
-      /* Creates dynamic body */
-      poResult = sstPhysics.poWorld->CreateBody(&stBodyDef);
+      /* Adds a body */
+      pstResult = (orxPHYSICS_BODY*) orxBank_Allocate(sstPhysics.pstBodyBank);
+
+      /* Valid? */
+      if(pstResult != orxNULL)
+      {
+        orxMemory_Zero(pstResult, sizeof(orxPHYSICS_BODY));
+
+        /* Creates dynamic body */
+        pstResult->poBody = sstPhysics.poWorld->CreateBody(&stBodyDef);
+
+        /* Adds it to list */
+        orxLinkList_AddEnd(&(sstPhysics.stBodyList), &(pstResult->stNode));
+      }
     }
   }
 
   /* Done! */
-  return (orxPHYSICS_BODY *)poResult;
+  return pstResult;
 }
 
 extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteBody(orxPHYSICS_BODY *_pstBody)
@@ -1158,7 +1262,7 @@ extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteBody(orxPHYSICS_BODY *_ps
       pstEventStorage = (pstEventStorage == orxNULL) ? (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetFirst(&(sstPhysics.stEventList)) : (orxPHYSICS_EVENT_STORAGE *)orxLinkList_GetNext(&(pstEventStorage->stNode)))
   {
     /* Is part of the event? */
-    if(((b2Body *)_pstBody == pstEventStorage->poDestination) || ((b2Body *)_pstBody == pstEventStorage->poSource))
+    if(((b2Body *)_pstBody->poBody == pstEventStorage->poDestination) || ((b2Body *)_pstBody->poBody == pstEventStorage->poSource))
     {
       orxPHYSICS_EVENT_STORAGE *pstCurrentEventStorage;
 
@@ -1175,7 +1279,11 @@ extern "C" void orxFASTCALL orxPhysics_LiquidFun_DeleteBody(orxPHYSICS_BODY *_ps
   }
 
   /* Deletes it */
-  sstPhysics.poWorld->DestroyBody((b2Body *)_pstBody);
+  sstPhysics.poWorld->DestroyBody((b2Body *)_pstBody->poBody);
+
+  /* Removes body */
+  orxLinkList_Remove(&(_pstBody->stNode));
+  orxBank_Free(sstPhysics.pstBodyBank, _pstBody);
 
   return;
 }
@@ -1197,7 +1305,7 @@ extern "C" orxPHYSICS_BODY_PART *orxFASTCALL orxPhysics_LiquidFun_CreatePart(orx
   orxASSERT(orxFLAG_TEST(_pstBodyPartDef->u32Flags, orxBODY_PART_DEF_KU32_MASK_TYPE));
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Circle? */
   if(orxFLAG_TEST(_pstBodyPartDef->u32Flags, orxBODY_PART_DEF_KU32_FLAG_SPHERE))
@@ -1699,7 +1807,7 @@ extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_LiquidFun_CreateJoint(o
       stGearJointDef.ratio = _pstBodyJointDef->stGear.fJointRatio;
 
       /* Gets source body */
-      poBody = (b2Body *)_pstSrcBody;
+      poBody = (b2Body *)_pstSrcBody->poBody;
 
       /* For all its joints */
       for(b2JointEdge *poEdge = poBody->GetJointList();
@@ -1728,7 +1836,7 @@ extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_LiquidFun_CreateJoint(o
       if(stGearJointDef.joint1 != 0)
       {
         /* Gets destination body */
-        poBody = (b2Body *)_pstDstBody;
+        poBody = (b2Body *)_pstDstBody->poBody;
 
         /* For all its joints */
         for(b2JointEdge *poEdge = poBody->GetJointList();
@@ -1792,8 +1900,8 @@ extern "C" orxPHYSICS_BODY_JOINT *orxFASTCALL orxPhysics_LiquidFun_CreateJoint(o
   {
     /* Inits joint definition */
     pstJointDef->userData             = _hUserData;
-    pstJointDef->bodyA                = (b2Body *)_pstSrcBody;
-    pstJointDef->bodyB                = (b2Body *)_pstDstBody;
+    pstJointDef->bodyA                = (b2Body *)_pstSrcBody->poBody;
+    pstJointDef->bodyB                = (b2Body *)_pstDstBody->poBody;
     pstJointDef->collideConnected     = orxFLAG_TEST(_pstBodyJointDef->u32Flags, orxBODY_JOINT_DEF_KU32_FLAG_COLLIDE) ? true : false;
 
     /* Creates it */
@@ -1942,7 +2050,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetJointReactionTorque(cons
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BODY *_pstBody, const orxVECTOR *_pvPosition)
 {
   b2Body   *poBody;
-  b2Vec2    vPosition;
+  orxFLOAT fPosX, fPosY, fRotation;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -1951,22 +2059,43 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
   orxASSERT(_pvPosition != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
-  /* Gets its position */
-  const b2Vec2 &rvPos = poBody->GetPosition();
-
-  /* Sets position vector */
-  vPosition.Set(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY);
+  if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+  {
+    fPosX = _pstBody->vSmoothedPosition.fX;
+    fPosY = _pstBody->vSmoothedPosition.fY;
+    fRotation = _pstBody->fSmoothedRotation;
+  }
+  else
+  {
+    const b2Vec2 &rvPos = poBody->GetPosition();
+    fPosX = rvPos.x;
+    fPosY = rvPos.y;
+    fRotation = poBody->GetAngle();
+  }
 
   /* Should apply? */
-  if((rvPos.x != vPosition.x) || (rvPos.y != vPosition.y))
+  if((fPosX != _pvPosition->fX) || (fPosY != _pvPosition->fY))
   {
+    b2Vec2    vPosition;
+
+    /* Sets position vector */
+    vPosition.Set(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY);
+
     /* Wakes up */
     poBody->SetAwake(true);
 
     /* Updates its position */
-    poBody->SetTransform(vPosition, poBody->GetAngle());
+    poBody->SetTransform(vPosition, fRotation);
+
+    /* Smoothed? */
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+    {
+      /* Updates smoothed position */
+      orxVector_Copy(&_pstBody->vPreviousPosition, _pvPosition);
+      orxVector_Copy(&_pstBody->vSmoothedPosition, _pvPosition);
+    }
   }
 
   /* Done! */
@@ -1976,7 +2105,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetPosition(orxPHYSICS_BOD
 extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BODY *_pstBody, orxFLOAT _fRotation)
 {
   b2Body   *poBody;
-  float32   fRotation;
+  orxFLOAT fRotation;
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -1984,10 +2113,10 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BOD
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
-  /* Gets its rotation */
-  fRotation = poBody->GetAngle();
+  /* Gets current rotation */
+  fRotation = orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE) ? _pstBody->fSmoothedRotation : poBody->GetAngle();
 
   /* Should apply? */
   if(fRotation != _fRotation)
@@ -1995,8 +2124,26 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetRotation(orxPHYSICS_BOD
     /* Wakes up */
     poBody->SetAwake(true);
 
-    /* Updates its rotation */
-    poBody->SetTransform(poBody->GetPosition(), _fRotation);
+    /* Smoothed? */
+    if(orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+    {
+      b2Vec2    vPosition;
+
+      /* Sets current position */
+      vPosition.Set(sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fX, sstPhysics.fDimensionRatio * _pstBody->vSmoothedPosition.fY);
+
+      /* Updates its rotation */
+      poBody->SetTransform(vPosition, _fRotation);
+
+      /* Updates smoothed rotation */
+      _pstBody->fPreviousRotation = _fRotation;
+      _pstBody->fSmoothedRotation = _fRotation;
+    }
+    else
+    {
+      /* Updates its rotation */
+      poBody->SetTransform(poBody->GetPosition(), _fRotation);
+    }
   }
 
   /* Done! */
@@ -2015,7 +2162,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetSpeed(orxPHYSICS_BODY *
   orxASSERT(_pvSpeed != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its speed */
   const b2Vec2 &rvSpeed = poBody->GetLinearVelocity();
@@ -2048,7 +2195,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetAngularVelocity(orxPHYS
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its angular velocity */
   fAngularVelocity = poBody->GetAngularVelocity();
@@ -2078,7 +2225,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetCustomGravity(orxPHYSIC
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its custom gravity */
   pvCustomGravity = poBody->GetCustomGravity();
@@ -2128,7 +2275,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetFixedRotation(orxPHYSIC
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Updates its fixed rotation property */
   poBody->SetFixedRotation((_bFixed != orxFALSE) ? true : false);
@@ -2149,7 +2296,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetPosition(const orxPHYS
   orxASSERT(_pvPosition != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its position */
   vPosition = poBody->GetPosition();
@@ -2173,7 +2320,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetRotation(const orxPHYSIC
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its rotation */
   fResult = poBody->GetAngle();
@@ -2194,7 +2341,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetSpeed(const orxPHYSICS
   orxASSERT(_pvSpeed != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its speed */
   vSpeed = poBody->GetLinearVelocity();
@@ -2222,7 +2369,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetSpeedAtWorldPosition(c
   orxASSERT(_pvSpeed != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its speed at given position */
   vSpeed = poBody->GetLinearVelocityFromWorldPoint(b2Vec2(sstPhysics.fDimensionRatio * _pvPosition->fX, sstPhysics.fDimensionRatio * _pvPosition->fY));
@@ -2247,7 +2394,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetAngularVelocity(const or
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its angular velocity */
   fResult = poBody->GetAngularVelocity();
@@ -2268,7 +2415,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetCustomGravity(const or
   orxASSERT(_pvCustomGravity != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its custom gravity */
   pvGravity = poBody->GetCustomGravity();
@@ -2300,7 +2447,7 @@ extern "C" orxBOOL orxFASTCALL orxPhysics_LiquidFun_IsFixedRotation(const orxPHY
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Updates result */
   bResult = (poBody->IsFixedRotation() != false) ? orxTRUE : orxFALSE;
@@ -2319,7 +2466,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetMass(const orxPHYSICS_BO
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Updates result */
   fResult = orx2F(poBody->GetMass());
@@ -2340,7 +2487,7 @@ extern "C" orxVECTOR *orxFASTCALL orxPhysics_LiquidFun_GetMassCenter(const orxPH
   orxASSERT(_pvMassCenter != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its mass center */
   vMassCenter = poBody->GetLocalCenter();
@@ -2367,7 +2514,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetLinearDamping(orxPHYSIC
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Sets its linear damping */
   poBody->SetLinearDamping(_fDamping);
@@ -2386,7 +2533,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_SetAngularDamping(orxPHYSI
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Sets its angular damping */
   poBody->SetAngularDamping(_fDamping);
@@ -2405,7 +2552,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetLinearDamping(const orxP
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its linear damping */
   fResult = orx2F(poBody->GetLinearDamping());
@@ -2424,7 +2571,7 @@ extern "C" orxFLOAT orxFASTCALL orxPhysics_LiquidFun_GetAngularDamping(const orx
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets its angular damping */
   fResult = orx2F(poBody->GetAngularDamping());
@@ -2445,7 +2592,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyTorque(orxPHYSICS_BOD
   orxASSERT(_pstBody != orxNULL);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets owner object */
   pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
@@ -2498,7 +2645,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyForce(orxPHYSICS_BODY
   vForce.Set(_pvForce->fX, _pvForce->fY);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets owner object */
   pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
@@ -2563,7 +2710,7 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_ApplyImpulse(orxPHYSICS_BO
   vImpulse.Set(sstPhysics.fDimensionRatio * _pvImpulse->fX, sstPhysics.fDimensionRatio * _pvImpulse->fY);
 
   /* Gets body */
-  poBody = (b2Body *)_pstBody;
+  poBody = (b2Body *)_pstBody->poBody;
 
   /* Gets owner object */
   pstObject = orxOBJECT(orxStructure_GetOwner(orxBODY(poBody->GetUserData())));
@@ -3026,6 +3173,13 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
 
       /* Updates status */
       orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_FIXED_DT, orxPHYSICS_KU32_STATIC_FLAG_NONE);
+
+      /* Smoothed physic? */
+      if(orxConfig_GetBool(orxPHYSICS_KZ_CONFIG_INTERPOLATE) == orxTRUE)
+      {
+        /* Updates status */
+        orxFLAG_SET(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE, orxPHYSICS_KU32_STATIC_FLAG_NONE);
+      }
     }
 
     /* Gets dimension ratio */
@@ -3177,24 +3331,68 @@ extern "C" orxSTATUS orxFASTCALL orxPhysics_LiquidFun_Init()
           /* Creates event bank */
           sstPhysics.pstEventBank = orxBank_Create(orxPhysics::su32MessageBankSize, sizeof(orxPHYSICS_EVENT_STORAGE), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
+          /* Creates body bank */
+          sstPhysics.pstBodyBank  = orxBank_Create(orxPhysics::su32BodyBankSize, sizeof(orxPHYSICS_BODY), orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
+
+          if((sstPhysics.pstEventBank != orxNULL)
+          && (sstPhysics.pstBodyBank != orxNULL))
+          {
 #ifdef orxPHYSICS_ENABLE_DEBUG_DRAW
 
-          /* Creates debug draw */
-          sstPhysics.poDebugDraw = new orxPhysicsDebugDraw();
+            /* Creates debug draw */
+            sstPhysics.poDebugDraw = new orxPhysicsDebugDraw();
 
-          /* Inits it */
-          sstPhysics.poDebugDraw->SetFlags(b2Draw::e_shapeBit | b2Draw::e_jointBit | b2Draw::e_centerOfMassBit | b2Draw::e_particleBit);
+            /* Inits it */
+            sstPhysics.poDebugDraw->SetFlags(b2Draw::e_shapeBit | b2Draw::e_jointBit | b2Draw::e_centerOfMassBit | b2Draw::e_particleBit);
 
-          /* Registers it */
-          sstPhysics.poWorld->SetDebugDraw(sstPhysics.poDebugDraw);
+            /* Registers it */
+            sstPhysics.poWorld->SetDebugDraw(sstPhysics.poDebugDraw);
 
-          /* Adds event handler */
-          orxEvent_AddHandler(orxEVENT_TYPE_RENDER, orxPhysics_LiquidFun_EventHandler);
+            /* Adds event handler */
+            orxEvent_AddHandler(orxEVENT_TYPE_RENDER, orxPhysics_LiquidFun_EventHandler);
 
 #endif /* orxPHYSICS_ENABLE_DEBUG_DRAW */
 
-          /* Updates status */
-          sstPhysics.u32Flags |= orxPHYSICS_KU32_STATIC_FLAG_READY | orxPHYSICS_KU32_STATIC_FLAG_ENABLED;
+            /* Updates status */
+            sstPhysics.u32Flags |= orxPHYSICS_KU32_STATIC_FLAG_READY | orxPHYSICS_KU32_STATIC_FLAG_ENABLED;
+          }
+          else
+          {
+            if(sstPhysics.pstEventBank != orxNULL)
+            {
+              orxBank_Delete(sstPhysics.pstEventBank);
+            }
+
+            if(sstPhysics.pstBodyBank != orxNULL)
+            {
+              orxBank_Delete(sstPhysics.pstBodyBank);
+            }
+
+            /* Deletes listeners */
+            delete sstPhysics.poContactListener;
+
+            /* Deletes particle systems */
+            if(sstPhysics.pstParticleSystems != orxNULL)
+            {
+              orxHANDLE iterator;
+              b2ParticleSystem *poParticleSystem;
+
+              for(iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, orxNULL, orxNULL, (void**)&poParticleSystem);
+                iterator != orxHANDLE_UNDEFINED;
+                iterator = orxHashTable_GetNext(sstPhysics.pstParticleSystems, iterator, orxNULL, (void**)&poParticleSystem))
+              {
+                sstPhysics.poWorld->DestroyParticleSystem(poParticleSystem);
+              }
+
+              orxHashTable_Delete(sstPhysics.pstParticleSystems);
+            }
+
+            /* Deletes world */
+            delete sstPhysics.poWorld;
+
+            /* Updates result */
+            eResult = orxSTATUS_FAILURE;
+          }
         }
         else
         {
@@ -3271,6 +3469,11 @@ extern "C" void orxFASTCALL orxPhysics_LiquidFun_Exit()
   /* Was initialized? */
   if(sstPhysics.u32Flags & orxPHYSICS_KU32_STATIC_FLAG_READY)
   {
+    /* Deletes body bank */
+    orxBank_Delete(sstPhysics.pstBodyBank);
+
+    /* Deletes event bank */
+    orxBank_Delete(sstPhysics.pstEventBank);
 
     /* Deletes the particle systems */
     if(sstPhysics.pstParticleSystems != orxNULL)
