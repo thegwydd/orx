@@ -891,10 +891,17 @@ static void orxFASTCALL orxPhysics_LiquidFun_ResetSmoothedStates()
       pstPhysicBody != NULL;
       pstPhysicBody = (orxPHYSICS_BODY*)orxLinkList_GetNext(&(pstPhysicBody->stNode)))
   {
-    orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
-    pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
-    pstPhysicBody->fSmoothedRotation = pstPhysicBody->fPreviousRotation;
-    orxVector_Copy(&pstPhysicBody->vSmoothedPosition, &pstPhysicBody->vPreviousPosition);
+    poBody = pstPhysicBody->poBody;
+
+    /* Non-static and awake? */
+    if((poBody->GetType() != b2_staticBody)
+    && (poBody->IsAwake() != false))
+    {
+      orxPhysics_GetPosition(pstPhysicBody, &pstPhysicBody->vPreviousPosition);
+      orxVector_Copy(&pstPhysicBody->vSmoothedPosition, &pstPhysicBody->vPreviousPosition);
+      pstPhysicBody->fPreviousRotation = orxPhysics_GetRotation(pstPhysicBody);
+      pstPhysicBody->fSmoothedRotation = pstPhysicBody->fPreviousRotation;
+    }
   }
 }
 
@@ -1031,8 +1038,7 @@ static void orxFASTCALL orxPhysics_LiquidFun_Update(const orxCLOCK_INFO *_pstClo
     for(i = 0; i < u32Steps; i++)
     {
       /* Last step and smoothed? */
-      if((i == u32Steps - 1)
-      && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
+      if((i == u32Steps - 1) && orxFLAG_TEST(sstPhysics.u32Flags, orxPHYSICS_KU32_STATIC_FLAG_INTERPOLATE))
       {
         /* Reset smoothed states */
         orxPhysics_LiquidFun_ResetSmoothedStates();
