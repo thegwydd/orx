@@ -1468,20 +1468,11 @@ static void orxFASTCALL orxDisplay_GLFW_DrawArrays()
     /* Has VBO support? */
     if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_VBO))
     {
-      void *pBuffer;
-
       /* No offset in the index list */
       pIndexContext = (GLvoid *)0;
 
-      /* Maps buffer */
-      pBuffer = glMapBufferRange(GL_ARRAY_BUFFER, 0, sstDisplay.s32BufferIndex * sizeof(orxDISPLAY_GLFW_VERTEX), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-      glASSERT();
-
-      /* Copies data to mapped buffer */
-      orxMemory_Copy(pBuffer, sstDisplay.astVertexList, sstDisplay.s32BufferIndex * sizeof(orxDISPLAY_GLFW_VERTEX));
-
-      /* Unmaps buffer */
-      glUnmapBuffer(GL_ARRAY_BUFFER);
+      /* Copies vertex buffer */
+      glBufferSubData(GL_ARRAY_BUFFER, 0, sstDisplay.s32BufferIndex * sizeof(orxDISPLAY_GLFW_VERTEX), sstDisplay.astVertexList);
       glASSERT();
     }
     else
@@ -1752,6 +1743,14 @@ static void orxFASTCALL orxDisplay_GLFW_DrawPrimitive(orxU32 _u32VertexNumber, o
 
     /* Updates blend mode */
     sstDisplay.eLastBlendMode = orxDISPLAY_BLEND_MODE_NONE;
+  }
+
+  /* Has VBO support? */
+  if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_VBO))
+  {
+    /* Copies vertex buffer */
+    glBufferSubData(GL_ARRAY_BUFFER, 0, _u32VertexNumber * sizeof(orxDISPLAY_GLFW_VERTEX), sstDisplay.astVertexList);
+    glASSERT();
   }
 
   /* Only 2 vertices? */
@@ -4254,6 +4253,16 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_SetVideoMode(const orxDISPLAY_VIDEO_MODE *
     glLoadIdentity();
     glASSERT();
 
+    /* Has VBO support? */
+    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_VBO))
+    {
+      /* Binds them */
+      glBindBuffer(GL_ARRAY_BUFFER, sstDisplay.uiVertexBuffer);
+      glASSERT();
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sstDisplay.uiIndexBuffer);
+      glASSERT();
+    }
+
     /* Resets client states */
     glEnableClientState(GL_VERTEX_ARRAY);
     glASSERT();
@@ -4269,16 +4278,6 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_SetVideoMode(const orxDISPLAY_VIDEO_MODE *
     glASSERT();
     glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(orxDISPLAY_VERTEX), (GLvoid *)offsetof(orxDISPLAY_GLFW_VERTEX, stRGBA));
     glASSERT();
-
-    /* Has VBO support? */
-    if(orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_VBO))
-    {
-      /* Binds them */
-      glBindBuffer(GL_ARRAY_BUFFER, sstDisplay.uiVertexBuffer);
-      glASSERT();
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sstDisplay.uiIndexBuffer);
-      glASSERT();
-    }
 
     /* Pops config section */
     orxConfig_PopSection();
