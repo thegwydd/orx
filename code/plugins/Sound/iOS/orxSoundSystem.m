@@ -147,11 +147,12 @@ struct __orxSOUNDSYSTEM_SOUND_t
     struct
     {
       orxLINKLIST_NODE        stNode;
-      orxBOOL                 bDelete;
-      orxBOOL                 bLoop;
-      orxBOOL                 bStop;
-      orxBOOL                 bPause;
       const orxSTRING         zReference;
+      orxBOOL                 bDelete       : 1;
+      orxBOOL                 bLoop         : 1;
+      orxBOOL                 bStop         : 1;
+      orxBOOL                 bStopping     : 1;
+      orxBOOL                 bPause        : 1;
       orxS32                  s32PacketID;
       orxSOUNDSYSTEM_DATA     stData;
 
@@ -602,7 +603,7 @@ static void orxFASTCALL orxSoundSystem_iOS_FillStream(orxSOUNDSYSTEM_SOUND *_pst
   orxASSERT(_pstSound != orxNULL);
 
   /* Valid? */
-  if(_pstSound->fDuration > orxFLOAT_0)
+  if(_pstSound->fDuration != orxFLOAT_0)
   {
     /* Not stopped? */
     if(_pstSound->bStop == orxFALSE)
@@ -625,20 +626,42 @@ static void orxFASTCALL orxSoundSystem_iOS_FillStream(orxSOUNDSYSTEM_SOUND *_pst
       }
       else
       {
+        ALint iProcessedBufferNumber;
+
         /* Gets number of processed buffers */
-        iBufferNumber = 0;
-        alGetSourcei(_pstSound->uiSource, AL_BUFFERS_PROCESSED, &iBufferNumber);
+        iProcessedBufferNumber = 0;
+        alGetSourcei(_pstSound->uiSource, AL_BUFFERS_PROCESSED, &iProcessedBufferNumber);
         alASSERT();
 
-        /* Found any? */
-        if(iBufferNumber > 0)
+        /* Stopping? */
+        if(_pstSound->bStopping != orxFALSE)
         {
-          /* Uses local list */
-          puiBufferList = sstSoundSystem.auiWorkBufferList;
+          /* Last buffers? */
+          if(iProcessedBufferNumber == iBufferNumber)
+          {
+            /* Updates status */
+            _pstSound->bStop      = orxTRUE;
+            _pstSound->bStopping  = orxFALSE;
+          }
 
-          /* Unqueues them all */
-          alSourceUnqueueBuffers(_pstSound->uiSource, orxMIN(iBufferNumber, sstSoundSystem.s32StreamBufferNumber), puiBufferList);
-          alASSERT();
+          /* Updates buffer number */
+          iBufferNumber = 0;
+        }
+        else
+        {
+          /* Updates buffer number */
+          iBufferNumber = iProcessedBufferNumber;
+
+          /* Found any? */
+          if(iBufferNumber > 0)
+          {
+            /* Uses local list */
+            puiBufferList = sstSoundSystem.auiWorkBufferList;
+
+            /* Unqueues them all */
+            alSourceUnqueueBuffers(_pstSound->uiSource, orxMIN(iBufferNumber, sstSoundSystem.s32StreamBufferNumber), puiBufferList);
+            alASSERT();
+          }
         }
       }
 
@@ -725,8 +748,8 @@ static void orxFASTCALL orxSoundSystem_iOS_FillStream(orxSOUNDSYSTEM_SOUND *_pst
               /* Not looping? */
               if(_pstSound->bLoop == orxFALSE)
               {
-                /* Stops */
-                _pstSound->bStop = orxTRUE;
+                /* Asks for stopping */
+                _pstSound->bStopping = orxTRUE;
                 break;
               }
             }
@@ -1103,6 +1126,9 @@ static orxSTATUS orxFASTCALL orxSoundSystem_iOS_LinkSampleTask(void *_pContext)
 
   /* Gets sound */
   pstSound = (orxSOUNDSYSTEM_SOUND *)_pContext;
+
+  /* Updates duration */
+  pstSound->fDuration = pstSound->pstSample->fDuration;
 
   /* Links buffer to source */
   alSourcei(pstSound->uiSource, AL_BUFFER, pstSound->pstSample->uiBuffer);
@@ -1652,9 +1678,6 @@ orxSOUNDSYSTEM_SOUND *orxFASTCALL orxSoundSystem_iOS_CreateFromSample(const orxS
     /* Links sample */
     pstResult->pstSample = (orxSOUNDSYSTEM_SAMPLE *)_pstSample;
 
-    /* Updates duration */
-    pstResult->fDuration = _pstSample->fDuration;
-
     /* Updates status */
     pstResult->bIsStream = orxFALSE;
 
@@ -1671,11 +1694,17 @@ orxSOUNDSYSTEM_SOUND *orxFASTCALL orxSoundSystem_iOS_CreateFromSample(const orxS
     /* Not finished loading? */
     if(_pstSample->uiBuffer == 0)
     {
+      /* Clears duration */
+      pstResult->fDuration = orx2F(-1.0f);
+
       /* Runs link task */
       orxThread_RunTask(&orxSoundSystem_iOS_LinkSampleTask, orxNULL, orxNULL, pstResult);
     }
     else
     {
+      /* Updates duration */
+      pstResult->fDuration = _pstSample->fDuration;
+
       /* Links it to data buffer */
       alSourcei(pstResult->uiSource, AL_BUFFER, _pstSample->uiBuffer);
       alASSERT();
@@ -1734,8 +1763,9 @@ orxSOUNDSYSTEM_SOUND *orxFASTCALL orxSoundSystem_iOS_CreateStream(orxU32 _u32Cha
 
       /* Updates status */
       pstResult->bIsStream  = orxTRUE;
-      pstResult->bStop      = orxTRUE;
       pstResult->zReference = _zReference;
+      pstResult->bStop      = orxTRUE;
+      pstResult->bStopping  = orxFALSE;
       pstResult->s32PacketID= 0;
 
       /* Adds it to the list */
@@ -1797,8 +1827,9 @@ orxSOUNDSYSTEM_SOUND *orxFASTCALL orxSoundSystem_iOS_CreateStreamFromFile(const 
 
         /* Updates status */
         pstResult->bIsStream  = orxTRUE;
-        pstResult->bStop      = orxTRUE;
         pstResult->zReference = _zReference;
+        pstResult->bStop      = orxTRUE;
+        pstResult->bStopping  = orxFALSE;
         pstResult->s32PacketID= 0;
 
         /* Generates openAL source */
@@ -1957,8 +1988,9 @@ orxSTATUS orxFASTCALL orxSoundSystem_iOS_Stop(orxSOUNDSYSTEM_SOUND *_pstSound)
   if(_pstSound->bIsStream != orxFALSE)
   {
     /* Updates status */
-    _pstSound->bStop  = orxTRUE;
-    _pstSound->bPause = orxFALSE;
+    _pstSound->bStop      = orxTRUE;
+    _pstSound->bStopping  = orxFALSE;
+    _pstSound->bPause     = orxFALSE;
   }
   else
   {

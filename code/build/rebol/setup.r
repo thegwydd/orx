@@ -13,18 +13,23 @@ extern:         %extern/
 cache:          %cache/
 temp:           %.temp/
 premake-root:   dirize extern/premake/bin
-build:          %code/build
+builds:         ['code %code/build 'tutorial %tutorial/build 'orxfontgen %tools/orxFontGen/build 'orxcrypt %tools/orxCrypt/build]
+hg:             %.hg/
+hg-hook:        "update.orx"
+git:            %.git/
+git-hooks:      [%post-checkout %post-merge]
 platform-data:  [
-    "windows"   ["windows"  ["gmake" "codelite" "vs2012" "vs2013"]                                                                     ]
-    "mac"       ["mac"      ["gmake" "codelite" "xcode4"         ]                                                                     ]
-    "linux"     ["linux32"  ["gmake" "codelite"                  ]  ["freeglut3-dev" "libsndfile1-dev" "libopenal-dev" "libxrandr-dev"]]
+    "windows"   ['premake "windows" 'config ["gmake" "codelite" "vs2012" "vs2013"] 'hgrc %hgrc                                                                           ]
+    "mac"       ['premake "mac"     'config ["gmake" "codelite" "xcode4"         ] 'hgrc %.hgrc                                                                          ]
+    "linux"     ['premake "linux32" 'config ["gmake" "codelite"                  ] 'hgrc %.hgrc 'deps ["freeglut3-dev" "libsndfile1-dev" "libopenal-dev" "libxrandr-dev"]]
 ]
 
 
 ; Inits
+begin: now/time
 platform: lowercase to-string system/platform/1
 if platform = "macintosh" [platform: "mac"]
-platform-info: select platform-data platform
+platform-info: platform-data/:platform
 
 change-dir system/options/home
 
@@ -54,93 +59,162 @@ cur-ver: either exists? cur-file [
     none
 ]
 either req-ver = cur-ver [
-    print ["== [" cur-ver "] already present, quitting!"]
-    quit
+    print ["== [" cur-ver "] already installed, skipping!"]
 ] [
     print ["== [" req-ver "] needed, current [" cur-ver "]"]
-]
 
 
-; Updates host
-if system/options/args [
-    host: to-url system/options/args/1
-]
-
-
-; Updates cache
-local: rejoin [cache req-ver '.zip]
-remote: replace host tag req-ver
-either exists? local [
-    print ["== [" req-ver "] found in cache!"]
-] [
-    attempt [make-dir/deep cache]
-    print ["== [" req-ver "] not in cache"]
-    print ["== Downloading [" remote "]" newline "== Please wait!"]
-    call reform [
-        to-local-file system/options/boot
-        system/script/path/download.r
-        remote
-        system/options/home/:local
+    ; Updates host
+    if system/options/args [
+        host: to-url system/options/args/1
     ]
-    while [not exists? local] [
-        prin "."
-        wait 0.5
+
+
+    ; Updates cache
+    local: rejoin [cache req-ver '.zip]
+    remote: replace host tag req-ver
+    either exists? local [
+        print ["== [" req-ver "] found in cache!"]
+    ] [
+        attempt [make-dir/deep cache]
+        print ["== [" req-ver "] not in cache"]
+        print ["== Fetching [" remote "]" newline "== Please wait!"]
+        write system/options/home/:local read to-url remote
+        print ["== [" req-ver "] cached!"]
     ]
-    print newline
-    print ["== [" req-ver "] cached!"]
+
+
+    ; Clears current version
+    if exists? extern [
+        print ["== Deleting [" extern "]"]
+        attempt [delete-dir extern]
+    ]
+
+
+    ; Decompresses
+    do system/script/path/rebzip.r
+    attempt [delete-dir temp]
+    print ["== Decompressing [" local "] => [" extern "]"]
+    wait 0.5
+    unzip/quiet temp local
+    wait 0.5
+    rename rejoin [temp load temp] extern
+    attempt [delete-dir temp]
+    print ["== [" req-ver "] installed!"]
+
+
+    ; Installs premake
+    premake-path: dirize rejoin [premake-root platform-info/premake]
+    premake: read premake-path
+    premake-file: read premake-path/:premake
+    forskip builds 2 [
+        print ["== Copying [" premake "] to [" builds/2 "]"]
+        write builds/2/:premake premake-file
+        if not platform = "windows" [
+            call reform ["chmod +x" builds/2/:premake]
+        ]
+    ]
+
+
+    ; Stores version
+    write cur-file req-ver
 ]
-
-
-; Clears current version
-if exists? extern [
-    print ["== Deleting [" extern "]"]
-    attempt [delete-dir extern]
-]
-
-
-; Decompresses
-do system/script/path/rebzip.r
-attempt [delete-dir temp]
-print ["== Decompressing [" local "] => [" extern "]"]
-wait 0.5
-unzip/quiet temp local
-wait 0.5
-rename rejoin [temp load temp] extern
-attempt [delete-dir temp]
-
-
-; Stores version
-write cur-file req-ver
-print ["== [" req-ver "] installed!"]
 
 
 ; Runs premake
-premake-path: dirize rejoin [premake-root platform-info/1]
+premake-path: dirize rejoin [premake-root platform-info/premake]
 premake: read premake-path
-
-print ["== Copying [" premake "] to [" build "]"]
-write build/:premake read premake-path/:premake
-if not platform = "windows" [
-    call reform ["chmod +x" build/:premake]
-]
-
 print ["== Generating build files for [" platform "]"]
-change-dir build
-foreach config platform-info/2 [
+foreach config platform-info/config [
     print ["== Generating [" config "]"]
-    call/wait rejoin ["./" premake " " config]
+    forskip builds 2 [
+        change-dir rejoin [system/options/home builds/2]
+        call/wait rejoin ["./" premake " " config]
+    ]
 ]
 change-dir system/options/home
+print ["== You can now build orx in [" builds/code/:platform "]"]
+
+
+; Mercurial hook
+if exists? hg [
+    hgrc: rejoin [hg platform-info/hgrc]
+    hgrc-file: to-string read hgrc
+
+    either find hgrc-file hg-hook [
+        print "== Mercurial hook already installed"
+    ] [
+        print "== Installing mercurial hook"
+        write hgrc append hgrc-file rejoin [
+            newline
+            "[hooks]"
+            newline
+            hg-hook
+            " = "
+            to-local-file either hook-rel: find/tail system/options/boot system/options/home [
+                hook-rel
+            ] [
+                system/options/boot
+            ]
+            " "
+            system/options/script
+            newline
+        ]
+    ]
+]
+
+
+; Git hooks
+if exists? git [
+    foreach hook git-hooks [
+        hook-content: rejoin [
+            newline
+            either hook-rel: find/tail system/options/boot system/options/home [
+                hook-rel
+            ] [
+                system/options/boot
+            ]
+            " "
+            system/options/script
+            newline
+        ]
+        hook-path: git/hooks/:hook
+        either all [
+            exists? hook-path
+            not empty? read hook-path
+        ] [
+            hook-file: either find hook-file: to-string read hook-path system/options/script [
+                none
+            ] [
+                append hook-file hook-content
+            ]
+        ] [
+            hook-file: rejoin [
+                "#!/bin/sh"
+                newline
+                hook-content
+            ]
+        ]
+
+        either hook-file [
+            print ["== Installing git hook [" hook "]"]
+            write hook-path hook-file
+            if not platform = "windows" [
+                call reform ["chmod +x" hook-path]
+            ]
+        ] [
+            print ["== Git hook [" hook "] already installed"]
+        ]
+    ]
+]
 
 
 ; Done!
-print ["== You can now build orx in [" build/:platform "]"]
-
-if platform = "linux" [
+if platform-info/deps [
     print newline
-    print ["== IMPORTANT - make sure the following libraries are installed on your system:"]
-    foreach lib platform-info/3 [print ["==[" lib "]"]]
+    print ["== IMPORTANT - Make sure the following libraries are installed on your system:"]
+    foreach lib platform-info/deps [print ["==[" lib "]"]]
     print newline
 ]
-
-print ["== Setup successful!"]
+end: now/time
+print ["== [" (end - begin) "] Setup successfull!"]
