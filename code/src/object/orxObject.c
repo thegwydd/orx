@@ -3633,76 +3633,6 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
         }
       }
 
-      /* Has FX? */
-      if((s32Number = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_FX_LIST)) > 0)
-      {
-        orxS32 i, s32DelayNumber;
-
-        /* Gets number of delays */
-        s32DelayNumber = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_FX_DELAY_LIST);
-
-        /* For all defined FXs */
-        for(i = 0; i < s32Number; i++)
-        {
-          orxFLOAT fDelay;
-
-          /* Gets its delay */
-          fDelay = (i < s32DelayNumber) ? orxConfig_GetListFloat(orxOBJECT_KZ_CONFIG_FX_DELAY_LIST, i) : orxFLOAT_0;
-          fDelay = orxMAX(fDelay, orxFLOAT_0);
-
-          /* Adds it */
-          orxObject_AddDelayedFX(pstResult, orxConfig_GetListString(orxOBJECT_KZ_CONFIG_FX_LIST, i), fDelay);
-        }
-
-        /* Success? */
-        if(pstResult->astStructureList[orxSTRUCTURE_ID_FXPOINTER].pstStructure != orxNULL)
-        {
-          orxCLOCK_INFO stClockInfo;
-
-          /* Applies FXs directly to prevent any potential 1-frame visual glitches */
-          orxMemory_Zero(&stClockInfo, sizeof(orxCLOCK_INFO));
-          stClockInfo.fDT = orxMATH_KF_EPSILON;
-          orxStructure_Update(pstResult->astStructureList[orxSTRUCTURE_ID_FXPOINTER].pstStructure, pstResult, &stClockInfo);
-        }
-      }
-
-      /* *** Spawner *** */
-
-      /* Gets spawner name */
-      zSpawnerName = orxConfig_GetString(orxOBJECT_KZ_CONFIG_SPAWNER);
-
-      /* Valid? */
-      if((zSpawnerName != orxNULL) && (zSpawnerName != orxSTRING_EMPTY))
-      {
-        orxSPAWNER *pstSpawner;
-
-        /* Creates spawner */
-        pstSpawner = orxSpawner_CreateFromConfig(zSpawnerName);
-
-        /* Valid? */
-        if(pstSpawner != orxNULL)
-        {
-          /* Links it */
-          if(orxObject_LinkStructure(pstResult, orxSTRUCTURE(pstSpawner)) != orxSTATUS_FAILURE)
-          {
-            /* Sets object as parent */
-            orxSpawner_SetParent(pstSpawner, pstResult);
-
-            /* Updates flags */
-            orxFLAG_SET(pstResult->astStructureList[orxSTRUCTURE_ID_SPAWNER].u32Flags, orxOBJECT_KU32_STORAGE_FLAG_INTERNAL, orxOBJECT_KU32_STORAGE_MASK_ALL);
-
-            /* Updates its owner */
-            orxStructure_SetOwner(pstSpawner, pstResult);
-          }
-          else
-          {
-            /* Deletes it */
-            orxSpawner_Delete(pstSpawner);
-            pstSpawner = orxNULL;
-          }
-        }
-      }
-
       /* *** Position & rotation */
 
       /* Has a position? */
@@ -3800,7 +3730,7 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
         }
       }
 
-      /* *** Misc *** */
+      /* *** Speed *** */
 
       /* Has speed? */
       if(orxConfig_GetVector(orxOBJECT_KZ_CONFIG_SPEED, &vValue) != orxNULL)
@@ -3818,8 +3748,84 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
         }
       }
 
+      /* *** Angular velocity *** */
+
       /* Sets angular velocity? */
       orxObject_SetAngularVelocity(pstResult, orxMATH_KF_DEG_TO_RAD * orxConfig_GetFloat(orxOBJECT_KZ_CONFIG_ANGULAR_VELOCITY));
+
+      /* *** FX *** */
+
+      /* Has FX? */
+      if((s32Number = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_FX_LIST)) > 0)
+      {
+        orxS32 i, s32DelayNumber;
+
+        /* Gets number of delays */
+        s32DelayNumber = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_FX_DELAY_LIST);
+
+        /* For all defined FXs */
+        for(i = 0; i < s32Number; i++)
+        {
+          orxFLOAT fDelay;
+
+          /* Gets its delay */
+          fDelay = (i < s32DelayNumber) ? orxConfig_GetListFloat(orxOBJECT_KZ_CONFIG_FX_DELAY_LIST, i) : orxFLOAT_0;
+          fDelay = orxMAX(fDelay, orxFLOAT_0);
+
+          /* Adds it */
+          orxObject_AddDelayedFX(pstResult, orxConfig_GetListString(orxOBJECT_KZ_CONFIG_FX_LIST, i), fDelay);
+        }
+
+        /* Success? */
+        if(pstResult->astStructureList[orxSTRUCTURE_ID_FXPOINTER].pstStructure != orxNULL)
+        {
+          orxCLOCK_INFO stClockInfo;
+
+          /* Applies FXs directly to prevent any potential 1-frame visual glitches */
+          orxMemory_Zero(&stClockInfo, sizeof(orxCLOCK_INFO));
+          stClockInfo.fDT = orxMATH_KF_EPSILON;
+          orxStructure_Update(pstResult->astStructureList[orxSTRUCTURE_ID_FXPOINTER].pstStructure, pstResult, &stClockInfo);
+        }
+      }
+
+      /* *** Spawner *** */
+
+      /* Gets spawner name */
+      zSpawnerName = orxConfig_GetString(orxOBJECT_KZ_CONFIG_SPAWNER);
+
+      /* Valid? */
+      if((zSpawnerName != orxNULL) && (zSpawnerName != orxSTRING_EMPTY))
+      {
+        orxSPAWNER *pstSpawner;
+
+        /* Creates spawner */
+        pstSpawner = orxSpawner_CreateFromConfig(zSpawnerName);
+
+        /* Valid? */
+        if(pstSpawner != orxNULL)
+        {
+          /* Links it */
+          if(orxObject_LinkStructure(pstResult, orxSTRUCTURE(pstSpawner)) != orxSTATUS_FAILURE)
+          {
+            /* Sets object as parent */
+            orxSpawner_SetParent(pstSpawner, pstResult);
+
+            /* Updates flags */
+            orxFLAG_SET(pstResult->astStructureList[orxSTRUCTURE_ID_SPAWNER].u32Flags, orxOBJECT_KU32_STORAGE_FLAG_INTERNAL, orxOBJECT_KU32_STORAGE_MASK_ALL);
+
+            /* Updates its owner */
+            orxStructure_SetOwner(pstSpawner, pstResult);
+          }
+          else
+          {
+            /* Deletes it */
+            orxSpawner_Delete(pstSpawner);
+            pstSpawner = orxNULL;
+          }
+        }
+      }
+
+      /* *** Sound *** */
 
       /* Has sound? */
       if((s32Number = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_SOUND_LIST)) > 0)
@@ -3834,6 +3840,8 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
         }
       }
 
+      /* *** Shader *** */
+
       /* Has shader? */
       if((s32Number = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_SHADER_LIST)) > 0)
       {
@@ -3847,6 +3855,8 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
         }
       }
 
+      /* *** Timeline *** */
+
       /* Has TimeLine tracks? */
       if((s32Number = orxConfig_GetListCounter(orxOBJECT_KZ_CONFIG_TRACK_LIST)) > 0)
       {
@@ -3859,6 +3869,8 @@ orxOBJECT *orxFASTCALL orxObject_CreateFromConfig(const orxSTRING _zConfigID)
           orxObject_AddTimeLineTrack(pstResult, orxConfig_GetListString(orxOBJECT_KZ_CONFIG_TRACK_LIST, i));
         }
       }
+
+      /* *** Misc *** */
 
       /* Has smoothing value? */
       if(orxConfig_HasValue(orxOBJECT_KZ_CONFIG_SMOOTHING) != orxFALSE)
