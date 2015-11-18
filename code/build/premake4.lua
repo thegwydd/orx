@@ -142,7 +142,7 @@ solution "orx"
         "../include",
         "../../extern/dlmalloc",
         "../../extern/glfw-2.7/include",
-        "../../extern/Box2D_2.1.3/include",
+        "../../extern/LiquidFun-1.1.0/include",
         "../../extern/stb_image",
         "../../extern/openal-soft/include",
         "../../extern/libsndfile-1.0.22/include",
