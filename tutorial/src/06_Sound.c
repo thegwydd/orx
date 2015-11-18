@@ -94,7 +94,7 @@ orxSTATUS orxFASTCALL EventHandler(const orxEVENT *_pstEvent)
     case orxSOUND_EVENT_START:
     {
       /* Logs info */
-      orxLOG("Sound <%s>@<%s> has started!", pstPayload->zSoundName, orxObject_GetName(orxOBJECT(_pstEvent->hRecipient)));
+      orxLOG("Sound [%s]@[%s] has started!", orxSound_GetName(pstPayload->pstSound), orxObject_GetName(orxOBJECT(_pstEvent->hRecipient)));
 
       break;
     }
@@ -102,7 +102,7 @@ orxSTATUS orxFASTCALL EventHandler(const orxEVENT *_pstEvent)
     case orxSOUND_EVENT_STOP:
     {
       /* Logs info */
-      orxLOG("Sound <%s>@<%s> has stopped!", pstPayload->zSoundName, orxObject_GetName(orxOBJECT(_pstEvent->hRecipient)));
+      orxLOG("Sound [%s]@[%s] has stopped!", orxSound_GetName(pstPayload->pstSound), orxObject_GetName(orxOBJECT(_pstEvent->hRecipient)));
 
       break;
     }

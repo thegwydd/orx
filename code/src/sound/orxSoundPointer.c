@@ -83,7 +83,7 @@
  */
 typedef struct __orxSOUNDPOINTER_HOLDER_t
 {
-  orxSOUND *pstSound;                                                       /**< Sound reference : 4/8 */
+  orxSOUND       *pstSound;                                                 /**< Sound reference : 4/8 */
   orxU32    u32Flags;                                                       /**< Flags : 8/12 */
 
 } orxSOUNDPOINTER_HOLDER;
@@ -156,6 +156,9 @@ static orxSTATUS orxFASTCALL orxSoundPointer_EventHandler(const orxEVENT *_pstEv
 
               /* Updates its status */
               orxFLAG_SET(pstSoundPointer->astSoundList[i].u32Flags, orxSOUNDPOINTER_HOLDER_KU32_FLAG_AUTO_PAUSE, orxSOUNDPOINTER_HOLDER_KU32_FLAG_NONE);
+
+              /* Delegates update to the sound */
+              orxStructure_Update(pstSoundPointer->astSoundList[i].pstSound, orxStructure_GetOwner(pstSoundPointer), orxNULL);
             }
           }
         }
@@ -192,6 +195,9 @@ static orxSTATUS orxFASTCALL orxSoundPointer_EventHandler(const orxEVENT *_pstEv
 
               /* Updates its status */
               orxFLAG_SET(pstSoundPointer->astSoundList[i].u32Flags, orxSOUNDPOINTER_HOLDER_KU32_FLAG_NONE, orxSOUNDPOINTER_HOLDER_KU32_FLAG_AUTO_PAUSE);
+
+              /* Delegates update to the sound */
+              orxStructure_Update(pstSoundPointer->astSoundList[i].pstSound, orxStructure_GetOwner(pstSoundPointer), orxNULL);
             }
           }
         }
@@ -281,16 +287,14 @@ static orxSTATUS orxFASTCALL orxSoundPointer_Update(orxSTRUCTURE *_pstStructure,
           orxFLAG_SET(pstSoundPointer->astSoundList[i].u32Flags, orxSOUNDPOINTER_HOLDER_KU32_FLAG_NONE, orxSOUNDPOINTER_HOLDER_KU32_FLAG_AUTO_PLAY);
         }
 
+        /* Delegates update to the sound */
+        orxStructure_Update(pstSound, _pstCaller, _pstClockInfo);
+
         /* Is sound stopped? */
         if(orxSound_GetStatus(pstSound) == orxSOUND_STATUS_STOP)
         {
           /* Removes it */
           orxSoundPointer_RemoveSound(pstSoundPointer, pstSound);
-        }
-        else
-        {
-          /* Delegates update to the sound */
-          orxStructure_Update(pstSound, _pstCaller, _pstClockInfo);
         }
       }
     }
@@ -461,28 +465,8 @@ orxSTATUS orxFASTCALL orxSoundPointer_Delete(orxSOUNDPOINTER *_pstSoundPointer)
   /* Not referenced? */
   if(orxStructure_GetRefCounter(_pstSoundPointer) == 0)
   {
-    orxU32 i;
-
-    /* For all sounds */
-    for(i = 0; i < orxSOUNDPOINTER_KU32_SOUND_NUMBER; i++)
-    {
-      /* Valid? */
-      if(_pstSoundPointer->astSoundList[i].pstSound != orxNULL)
-      {
-        /* Decreases its reference counter */
-        orxStructure_DecreaseCounter(_pstSoundPointer->astSoundList[i].pstSound);
-
-        /* Is internal? */
-        if(orxFLAG_TEST(_pstSoundPointer->astSoundList[i].u32Flags, orxSOUNDPOINTER_HOLDER_KU32_FLAG_INTERNAL))
-        {
-          /* Removes its owner */
-          orxStructure_SetOwner(_pstSoundPointer->astSoundList[i].pstSound, orxNULL);
-
-          /* Deletes it */
-          orxSound_Delete(_pstSoundPointer->astSoundList[i].pstSound);
-        }
-      }
-    }
+    /* Removes all sounds */
+    orxSoundPointer_RemoveAllSounds(_pstSoundPointer);
 
     /* Deletes structure */
     orxStructure_Delete(_pstSoundPointer);
@@ -631,6 +615,9 @@ orxSTATUS orxFASTCALL orxSoundPointer_Play(orxSOUNDPOINTER *_pstSoundPointer)
     {
       /* Plays it */
       orxSound_Play(pstSound);
+
+      /* Delegates update to the sound */
+      orxStructure_Update(pstSound, orxStructure_GetOwner(_pstSoundPointer), orxNULL);
     }
   }
 
@@ -703,6 +690,9 @@ orxSTATUS orxFASTCALL orxSoundPointer_Stop(orxSOUNDPOINTER *_pstSoundPointer)
 
       /* Stops it */
       orxSound_Stop(pstSound);
+
+      /* Delegates update to the sound */
+      orxStructure_Update(pstSound, orxStructure_GetOwner(_pstSoundPointer), orxNULL);
     }
   }
 
@@ -802,11 +792,10 @@ orxSTATUS orxFASTCALL orxSoundPointer_AddSound(orxSOUNDPOINTER *_pstSoundPointer
 
     /* Inits event payload */
     orxMemory_Zero(&stPayload, sizeof(orxSOUND_EVENT_PAYLOAD));
-    stPayload.pstSound    = _pstSound;
-    stPayload.zSoundName  = orxSound_GetName(_pstSound);
+    stPayload.pstSound = _pstSound;
 
     /* Sends event */
-    orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_START, pstOwner, pstOwner, &stPayload);
+    orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_ADD, pstOwner, pstOwner, &stPayload);
 
     /* Updates result */
     eResult = orxSTATUS_SUCCESS;
@@ -861,14 +850,20 @@ orxSTATUS orxFASTCALL orxSoundPointer_RemoveSound(orxSOUNDPOINTER *_pstSoundPoin
 
         /* Inits event payload */
         orxMemory_Zero(&stPayload, sizeof(orxSOUND_EVENT_PAYLOAD));
-        stPayload.pstSound    = pstSound;
-        stPayload.zSoundName  = orxSound_GetName(pstSound);
+        stPayload.pstSound = pstSound;
 
         /* Gets owner */
         pstOwner = orxStructure_GetOwner(_pstSoundPointer);
 
-        /* Sends event */
-        orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_STOP, pstOwner, pstOwner, &stPayload);
+        /* Wasn't stopped? */
+        if(orxSound_GetStatus(pstSound) != orxSOUND_STATUS_STOP)
+        {
+          /* Sends stop event */
+          orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_STOP, pstOwner, pstOwner, &stPayload);
+        }
+
+        /* Sends remove event */
+        orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_REMOVE, pstOwner, pstOwner, &stPayload);
 
         /* Decreases its reference counter */
         orxStructure_DecreaseCounter(pstSound);
@@ -934,14 +929,20 @@ orxSTATUS orxFASTCALL orxSoundPointer_RemoveAllSounds(orxSOUNDPOINTER *_pstSound
 
       /* Inits event payload */
       orxMemory_Zero(&stPayload, sizeof(orxSOUND_EVENT_PAYLOAD));
-      stPayload.pstSound    = pstSound;
-      stPayload.zSoundName  = orxSound_GetName(pstSound);
+      stPayload.pstSound = pstSound;
 
       /* Gets owner */
       pstOwner = orxStructure_GetOwner(_pstSoundPointer);
 
+      /* Wasn't stopped? */
+      if(orxSound_GetStatus(pstSound) != orxSOUND_STATUS_STOP)
+      {
+        /* Sends stop event */
+        orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_STOP, pstOwner, pstOwner, &stPayload);
+      }
+
       /* Sends event */
-      orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_STOP, pstOwner, pstOwner, &stPayload);
+      orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_REMOVE, pstOwner, pstOwner, &stPayload);
 
       /* Decreases its reference counter */
       orxStructure_DecreaseCounter(pstSound);
@@ -1078,11 +1079,10 @@ orxSTATUS orxFASTCALL orxSoundPointer_AddSoundFromConfig(orxSOUNDPOINTER *_pstSo
 
       /* Inits event payload */
       orxMemory_Zero(&stPayload, sizeof(orxSOUND_EVENT_PAYLOAD));
-      stPayload.pstSound    = pstSound;
-      stPayload.zSoundName  = orxSound_GetName(pstSound);
+      stPayload.pstSound = pstSound;
 
       /* Sends event */
-      orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_START, pstOwner, pstOwner, &stPayload);
+      orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_ADD, pstOwner, pstOwner, &stPayload);
 
       /* Updates result */
       eResult = orxSTATUS_SUCCESS;
@@ -1149,14 +1149,13 @@ orxSTATUS orxFASTCALL orxSoundPointer_RemoveSoundFromConfig(orxSOUNDPOINTER *_ps
 
         /* Inits event payload */
         orxMemory_Zero(&stPayload, sizeof(orxSOUND_EVENT_PAYLOAD));
-        stPayload.pstSound    = pstSound;
-        stPayload.zSoundName  = orxSound_GetName(pstSound);
+        stPayload.pstSound = pstSound;
 
         /* Gets owner */
         pstOwner = orxStructure_GetOwner(_pstSoundPointer);
 
         /* Sends event */
-        orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_STOP, pstOwner, pstOwner, &stPayload);
+        orxEVENT_SEND(orxEVENT_TYPE_SOUND, orxSOUND_EVENT_REMOVE, pstOwner, pstOwner, &stPayload);
 
         /* Decreases its reference counter */
         orxStructure_DecreaseCounter(pstSound);
