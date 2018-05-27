@@ -1101,6 +1101,16 @@ extern orxDLLAPI orxSTATUS orxFASTCALL                orxDisplay_DrawOBox(const 
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL                orxDisplay_DrawMesh(const orxBITMAP *_pstBitmap, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode, orxU32 _u32VertexNumber, const orxDISPLAY_VERTEX *_astVertexList);
 
+/** Draws a custom mash primitive
+* @param[in]   _pstBitmap                            Bitmap to use for texturing, orxNULL to use the current one
+* @param[in]   _eSmoothing                           Bitmap smoothing type
+* @param[in]   _eBlendMode                           Blend mode
+* @param[in]   _eDrawMode                            Specifies what kind of primitives to render.
+* @param[in]   _u32VertexNumber                      Number of vertices in the mesh
+* @return orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+*/
+extern orxDLLAPI orxSTATUS orxFASTCALL                orxDisplay_DrawCustomMesh(orxCUSTOM_MESH *_pstCustomMesh);
+
 /** Has shader support?
  * @return orxTRUE / orxFALSE
  */
