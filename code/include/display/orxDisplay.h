@@ -161,6 +161,38 @@ typedef enum __orxDISPLAY_BLEND_MODE_t
 
 } orxDISPLAY_BLEND_MODE;
 
+/** Drawing mode enum
+*/
+typedef enum __orxDISPLAY_DRAW_MODE_t
+{
+  orxDISPLAY_DRAW_MODE_POINTS = 0,
+  orxDISPLAY_DRAW_MODE_LINES,
+  orxDISPLAY_DRAW_MODE_LINE_LOOP,
+  orxDISPLAY_DRAW_MODE_LINE_STRIP,
+  orxDISPLAY_DRAW_MODE_TRIANGLES,
+  orxDISPLAY_DRAW_MODE_TRIANGLE_STRIP,
+  orxDISPLAY_DRAW_MODE_TRIANGLE_FAN,
+  orxDISPLAY_DRAW_MODE_QUADS,
+  orxDISPLAY_DRAW_MODE_QUAD_STRIP,
+  orxDISPLAY_DRAW_MODE_POLYGON,
+ 
+  orxDISPLAY_DRAW_MODE_NONE = orxENUM_NONE
+
+} orxDISPLAY_DRAW_MODE;
+
+/** Drawing mode enum
+*/
+typedef enum __orxDISPLAY_INDEX_TYPE_t
+{
+  orxDISPLAY_INDEX_TYPE_U8 = 0,
+  orxDISPLAY_INDEX_TYPE_U16,
+  orxDISPLAY_INDEX_TYPE_U32,
+
+  orxDISPLAY_INDEX_TYPE_NONE = orxENUM_NONE
+
+} orxDISPLAY_INDEX_TYPE;
+
+
 /** Color structure
  */
 typedef struct __orxCOLOR_t
@@ -175,6 +207,25 @@ typedef struct __orxCOLOR_t
 
 } orxCOLOR;
 
+/** Color structure
+ */
+typedef struct __orxCUSTOM_MESH
+{
+  orxBITMAP *                 pstBitmap;
+  orxU32                      u32BitmapClipTLX;
+  orxU32                      u32BitmapClipTLY;
+  orxU32                      u32BitmapClipBRX;
+  orxU32                      u32BitmapClipBRY;
+  orxDISPLAY_SMOOTHING        eSmoothing;
+  orxDISPLAY_BLEND_MODE       eBlendMode;
+  orxDISPLAY_DRAW_MODE        eDrawMode;
+  orxU32                      u32VertexNumber;
+  const orxDISPLAY_VERTEX *   astVertexList;
+  orxU32                      u32IndexesCount;
+  const orxU16 *              au16IndexList;
+  orxU32                      u32ElementCount;
+
+} orxCUSTOM_MESH;
 
 /** Config parameters
  */

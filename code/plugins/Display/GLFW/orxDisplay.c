@@ -2291,6 +2291,70 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_DrawMesh(const orxBITMAP *_pstBitmap, orxD
   return eResult;
 }
 
+orxSTATUS orxFASTCALL orxDisplay_GLFW_DrawCustomMesh(orxCUSTOM_MESH * _pstCustomMesh)
+{
+  orxU32            u32VertexNumber = _pstCustomMesh->u32VertexNumber;
+  orxSTATUS         eResult = orxSTATUS_SUCCESS;
+
+  /* Checks */
+  orxASSERT((sstDisplay.u32Flags & orxDISPLAY_KU32_STATIC_FLAG_READY) == orxDISPLAY_KU32_STATIC_FLAG_READY);
+  orxASSERT(_pstCustomMesh->u32VertexNumber > 2);
+  orxASSERT(_pstCustomMesh->astVertexList != orxNULL);
+
+  /* Clear the buffer anyway because we're going to use custom draw mode */
+  orxDisplay_GLFW_DrawArrays();
+
+  /* Gets bitmap to use */
+  if ((_pstCustomMesh->pstBitmap != orxNULL) && (_pstCustomMesh->u32ElementCount > 0))
+  {
+    /* Prepares bitmap for drawing */
+    orxDisplay_GLFW_PrepareBitmap(_pstCustomMesh->pstBitmap, _pstCustomMesh->eSmoothing, _pstCustomMesh->eBlendMode);
+
+    /* Apply bitmap clipping */
+    orxDisplay_SetBitmapClipping(_pstCustomMesh->pstBitmap, _pstCustomMesh->u32BitmapClipTLX, _pstCustomMesh->u32BitmapClipTLY, _pstCustomMesh->u32BitmapClipBRX, _pstCustomMesh->u32BitmapClipBRY);
+
+    GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
+    glScissor(_pstCustomMesh->u32BitmapClipTLX, _pstCustomMesh->u32BitmapClipTLY, _pstCustomMesh->u32BitmapClipBRX, _pstCustomMesh->u32BitmapClipBRY);
+
+    /* Has VBO support? */
+    if (orxFLAG_TEST(sstDisplay.u32Flags, orxDISPLAY_KU32_STATIC_FLAG_VBO))
+        {
+        /* Delete old index bugger */
+        glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+        glASSERT();
+
+        /* Copies vertex buffer */
+        glBufferSubDataARB(GL_ARRAY_BUFFER_ARB, 0, _pstCustomMesh->u32VertexNumber * sizeof(orxDISPLAY_GLFW_VERTEX), _pstCustomMesh->astVertexList);
+        glASSERT();
+
+        /* Draws arrays */
+        glDrawElements((GLenum)_pstCustomMesh->eDrawMode, (GLsizei)_pstCustomMesh->u32ElementCount, GL_UNSIGNED_SHORT, (GLvoid *)/*0*/_pstCustomMesh->au16IndexList);
+        glASSERT();
+
+        /* Restore old index buffer */
+        glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, sstDisplay.uiIndexBuffer);
+        glASSERT();
+
+        /* Fills IBO */
+        glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, orxDISPLAY_KU32_INDEX_BUFFER_SIZE * sizeof(GLushort), &(sstDisplay.au16IndexList), GL_STATIC_DRAW_ARB);
+        glASSERT();
+        }
+    else
+        {
+        /* Draws arrays */
+        glDrawElements((GLenum)_pstCustomMesh->eDrawMode, (GLsizei)_pstCustomMesh->u32ElementCount, GL_UNSIGNED_SHORT, (GLvoid *)_pstCustomMesh->au16IndexList);
+        glASSERT();
+        }
+
+    // Restore modified state
+    glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
+  }
+
+  /* Done! */
+  return eResult;
+}
+
 void orxFASTCALL orxDisplay_GLFW_DeleteBitmap(orxBITMAP *_pstBitmap)
 {
   /* Checks */

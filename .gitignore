@@ -1,0 +1,7 @@
+/cache/*
+/code/bin/*
+/code/build/*
+/code/lib/*
+/extern/*
+/tools/*
+/tutorial/*
