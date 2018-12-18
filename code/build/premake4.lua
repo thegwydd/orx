@@ -239,6 +239,21 @@ solution "orx"
             "/MP"
         }
 
+    configuration {"windows", "vs*", "*Debug*"}
+		{	
+		"/Fdorxd_lnk.pdb"
+		}
+		
+    configuration {"windows", "vs*", "*Profile*"}
+		{	
+		"/Fdorxp_lnk.pdb"
+		}
+
+		    configuration {"windows", "vs*", "*Release*"}
+		{	
+		"/Fdorx_lnk.pdb"
+		}
+		
     configuration {"vs2013", "x32"}
         libdirs
         {

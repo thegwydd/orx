@@ -232,7 +232,7 @@ solution "orxFontGen"
         }
 
     configuration {"windows", "vs*", "*Debug*"}
-        linkoptions {"/NODEFAULTLIB:LIBCMT"}
+        linkoptions {"/NODEFAULTLIB:LIBCMT /FdorxFontGen_lnk.pdb"}
 
     configuration {"vs2012"}
         libdirs

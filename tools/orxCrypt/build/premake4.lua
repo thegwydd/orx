@@ -212,7 +212,10 @@ solution "orxCrypt"
         {
             "/MP"
         }
-
+        linkoptions 
+		{
+			"/FdorxFontGen_lnk.pdb"
+		}
 
 --
 -- Project: orxCrypt
